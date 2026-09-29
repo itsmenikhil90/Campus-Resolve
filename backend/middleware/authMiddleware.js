@@ -56,6 +56,11 @@ const protect = async (req, res, next) => {
     }
 };
 
+const optionalProtect = async (req, res, next) => {
+    if (!req.headers.authorization) return next();
+    return protect(req, res, next);
+};
+
 
 // =============================
 // ROLE AUTHORIZATION
@@ -80,5 +85,6 @@ const authorize = (...roles) => {
 
 module.exports = {
     protect,
+    optionalProtect,
     authorize
 };

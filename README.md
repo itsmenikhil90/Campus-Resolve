@@ -1,6 +1,6 @@
-# AI-COMPLY
+# Campus Resolve
 
-AI-COMPLY is a standalone, AI-assisted complaint management platform. Users can submit and track complaints, while administrators review recommendations, manage workflows, and make final decisions.
+Campus Resolve is a standalone, AI-assisted complaint management platform. Users can submit and track complaints, ask an AI-powered assistant about FAQs and their own complaint updates, while administrators review recommendations, manage workflows, and make final decisions.
 
 ## Run locally
 
@@ -18,9 +18,11 @@ AI-COMPLY is a standalone, AI-assisted complaint management platform. Users can 
 
 To create an administrator, add `ADMIN_EMAIL` and `ADMIN_PASSWORD` to `backend/.env`, then run `node createAdmin.js` from the `backend` directory. Forgot-password emails require `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, and `EMAIL_FROM`.
 
-The backend serves the frontend and API from the same origin, which is allowed automatically. If hosting the frontend separately, set `window.AI_COMPLY_API_BASE` before loading `script.js` and `portal.js`, and add the frontend origin to `FRONTEND_URL`.
+The backend serves the frontend and API from the same origin, which is allowed automatically. If hosting the frontend separately, set `window.CAMPUS_RESOLVE_API_BASE` before loading the frontend scripts and add the frontend origin to `FRONTEND_URL`.
 
 After login, users can submit and track their own complaints. Administrators receive dashboard, search, approval/rejection, response, and workflow controls.
+
+The Campus Resolve Assistant answers the site FAQs and can look up a signed-in user's own complaint statuses and details. When AI is enabled, chat messages, recent conversation turns, and (when complaint lookup is relevant) authorized complaint details are sent to the configured OpenAI service; disclose this to users and configure the provider accordingly. Without AI configuration, supported FAQs and complaint lookups use local responses. Chat is rate-limited and cannot change complaint records.
 
 Workflow: `Pending Approval → Under Review → Assigned → In Progress → Resolved`; rejection is terminal. Status changes and notifications are stored in MongoDB.
 

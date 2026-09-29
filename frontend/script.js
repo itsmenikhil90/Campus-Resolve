@@ -5,7 +5,7 @@
      BASIC SETTINGS
      =========================================================== */
 
-  const API_BASE = window.AI_COMPLY_API_BASE || "/api";
+  const API_BASE = window.CAMPUS_RESOLVE_API_BASE || window.AI_COMPLY_API_BASE || "/api";
 
   const prefersReducedMotion =
     window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -2386,13 +2386,13 @@ function loadComplaints() {
      =========================================================== */
 
   function getAuthToken() {
-    const tokenKey = "aicomply_auth_token";
-    const legacyTokenKey = "aimt_auth_token";
-    const token = localStorage.getItem(tokenKey) || localStorage.getItem(legacyTokenKey);
+    const tokenKey = "campus_resolve_auth_token";
+    const legacyKeys = ["aicomply_auth_token", "aimt_auth_token"];
+    const token = localStorage.getItem(tokenKey) || legacyKeys.map(key => localStorage.getItem(key)).find(Boolean);
     if (token && !localStorage.getItem(tokenKey)) {
       localStorage.setItem(tokenKey, token);
-      localStorage.removeItem(legacyTokenKey);
     }
+    legacyKeys.forEach(key => localStorage.removeItem(key));
     return token;
 
   }
@@ -2402,13 +2402,13 @@ function loadComplaints() {
 
     try {
 
-      const userKey = "aicomply_auth_user";
-      const legacyUserKey = "aimt_auth_user";
-      const user = localStorage.getItem(userKey) || localStorage.getItem(legacyUserKey);
+      const userKey = "campus_resolve_auth_user";
+      const legacyKeys = ["aicomply_auth_user", "aimt_auth_user"];
+      const user = localStorage.getItem(userKey) || legacyKeys.map(key => localStorage.getItem(key)).find(Boolean);
       if (user && !localStorage.getItem(userKey)) {
         localStorage.setItem(userKey, user);
-        localStorage.removeItem(legacyUserKey);
       }
+      legacyKeys.forEach(key => localStorage.removeItem(key));
       return JSON.parse(user || "null");
 
     } catch (error) {
@@ -2430,7 +2430,7 @@ function loadComplaints() {
     ) {
 
       localStorage.setItem(
-        "aicomply_auth_token",
+        "campus_resolve_auth_token",
         data.token
       );
 
@@ -2443,7 +2443,7 @@ function loadComplaints() {
     ) {
 
       localStorage.setItem(
-        "aicomply_auth_user",
+        "campus_resolve_auth_user",
         JSON.stringify(
           data.user
         )
@@ -2456,6 +2456,8 @@ function loadComplaints() {
 
   function clearAuth() {
 
+    localStorage.removeItem("campus_resolve_auth_token");
+    localStorage.removeItem("campus_resolve_auth_user");
     localStorage.removeItem("aicomply_auth_token");
     localStorage.removeItem("aicomply_auth_user");
     localStorage.removeItem("aimt_auth_token");
@@ -3347,7 +3349,7 @@ function loadComplaints() {
 
 async function testBackendConnection() {
     try {
-        const response = await fetch(`${window.AI_COMPLY_API_BASE || "/api"}/health`);
+        const response = await fetch(`${window.CAMPUS_RESOLVE_API_BASE || window.AI_COMPLY_API_BASE || "/api"}/health`);
 
         const data = await response.json();
 

@@ -36,9 +36,9 @@ const sendPasswordResetOtp = async ({ email, name, otp }) => {
     await transporter.sendMail({
         from: process.env.EMAIL_FROM || process.env.SMTP_FROM,
         to: email,
-        subject: "AI-COMPLY - Password Reset OTP",
-        text: `Hello ${name},\n\nYour AI-COMPLY password reset code is ${otp}. It expires in 15 minutes. If you did not request this, ignore this email.`,
-        html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;padding:30px;background:#f8f5ed;border:1px solid #d6c27a"><h2 style="color:#142451">AI-COMPLY</h2><p>Hello <strong>${escapeHtml(name)}</strong>,</p><p>Use this one-time password to reset your AI-COMPLY account password. It expires in <strong>15 minutes</strong>.</p><div style="margin:30px 0;font-size:32px;letter-spacing:8px;font-weight:bold;color:#142451">${otp}</div><p>If you did not request a password reset, you can safely ignore this email.</p><hr><p style="font-size:12px;color:#777">AI-COMPLY Support</p></div>`
+        subject: "Campus Resolve - Password Reset OTP",
+        text: `Hello ${name},\n\nYour Campus Resolve password reset code is ${otp}. It expires in 15 minutes. If you did not request this, ignore this email.`,
+        html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;padding:30px;background:#f8f5ed;border:1px solid #d6c27a"><h2 style="color:#142451">Campus Resolve</h2><p>Hello <strong>${escapeHtml(name)}</strong>,</p><p>Use this one-time password to reset your Campus Resolve account password. It expires in <strong>15 minutes</strong>.</p><div style="margin:30px 0;font-size:32px;letter-spacing:8px;font-weight:bold;color:#142451">${otp}</div><p>If you did not request a password reset, you can safely ignore this email.</p><hr><p style="font-size:12px;color:#777">Campus Resolve Support</p></div>`
     });
 };
 

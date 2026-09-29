@@ -90,10 +90,12 @@ app.use("/api", limiter);
 const authRoutes = require("./routes/authRoutes");
 const complaintRoutes = require("./routes/complaintRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
+const chatbotRoutes = require("./routes/chatbotRoutes");
 
 app.use("/api/auth", authRoutes);
 app.use("/api/complaints", complaintRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/chatbot", chatbotRoutes);
 
 /* =================================
    ROOT ROUTE

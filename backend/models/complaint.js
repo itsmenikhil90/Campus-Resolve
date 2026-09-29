@@ -216,9 +216,9 @@ complaintSchema.pre("validate", async function () {
     if (this.ticketId) return;
     const year = new Date().getFullYear();
     const count = await mongoose.model("Complaint").countDocuments({
-        ticketId: new RegExp(`^AC-${year}-`)
+        ticketId: new RegExp(`^CR-${year}-`)
     });
-    this.ticketId = `AC-${year}-${String(count + 1).padStart(4, "0")}`;
+    this.ticketId = `CR-${year}-${String(count + 1).padStart(4, "0")}`;
 });
 
 module.exports = mongoose.model("Complaint", complaintSchema);

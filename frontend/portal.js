@@ -1,16 +1,12 @@
 (() => {
-  const API = window.AI_COMPLY_API_BASE || "/api";
-  const token = localStorage.getItem("aicomply_auth_token") || localStorage.getItem("aimt_auth_token");
-  const storedUser = localStorage.getItem("aicomply_auth_user") || localStorage.getItem("aimt_auth_user");
+  const API = window.CAMPUS_RESOLVE_API_BASE || window.AI_COMPLY_API_BASE || "/api";
+  const token = localStorage.getItem("campus_resolve_auth_token") || localStorage.getItem("aicomply_auth_token") || localStorage.getItem("aimt_auth_token");
+  const storedUser = localStorage.getItem("campus_resolve_auth_user") || localStorage.getItem("aicomply_auth_user") || localStorage.getItem("aimt_auth_user");
   const user = JSON.parse(storedUser || "null");
-  if (token && !localStorage.getItem("aicomply_auth_token")) {
-    localStorage.setItem("aicomply_auth_token", token);
-    localStorage.removeItem("aimt_auth_token");
-  }
-  if (storedUser && !localStorage.getItem("aicomply_auth_user")) {
-    localStorage.setItem("aicomply_auth_user", storedUser);
-    localStorage.removeItem("aimt_auth_user");
-  }
+  if (token) localStorage.setItem("campus_resolve_auth_token", token);
+  if (storedUser) localStorage.setItem("campus_resolve_auth_user", storedUser);
+  ["aicomply_auth_token", "aimt_auth_token"].forEach(key => localStorage.removeItem(key));
+  ["aicomply_auth_user", "aimt_auth_user"].forEach(key => localStorage.removeItem(key));
   const app = document.querySelector("#app");
   const admin = user?.role === "admin";
 
@@ -44,10 +40,8 @@
     });
     const data = await response.json().catch(() => ({ message: "Network error" }));
     if (response.status === 401 || response.status === 403) {
-      localStorage.removeItem("aicomply_auth_token");
-      localStorage.removeItem("aicomply_auth_user");
-      localStorage.removeItem("aimt_auth_token");
-      localStorage.removeItem("aimt_auth_user");
+      ["campus_resolve_auth_token", "aicomply_auth_token", "aimt_auth_token"].forEach(key => localStorage.removeItem(key));
+      ["campus_resolve_auth_user", "aicomply_auth_user", "aimt_auth_user"].forEach(key => localStorage.removeItem(key));
       location.href = "index.html";
       return data;
     }
@@ -57,10 +51,8 @@
 
   document.querySelector("#identity").textContent = `${user.name} · ${admin ? "Administrator" : "User"}`;
   document.querySelector("#logout").onclick = () => {
-    localStorage.removeItem("aicomply_auth_token");
-    localStorage.removeItem("aicomply_auth_user");
-    localStorage.removeItem("aimt_auth_token");
-    localStorage.removeItem("aimt_auth_user");
+    ["campus_resolve_auth_token", "aicomply_auth_token", "aimt_auth_token"].forEach(key => localStorage.removeItem(key));
+    ["campus_resolve_auth_user", "aicomply_auth_user", "aimt_auth_user"].forEach(key => localStorage.removeItem(key));
     location.href = "index.html";
   };
 

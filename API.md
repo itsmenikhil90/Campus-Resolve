@@ -1,4 +1,4 @@
-# AI-COMPLY API
+# Campus Resolve API
 
 All protected endpoints need `Authorization: Bearer <jwt>`.
 
@@ -21,3 +21,6 @@ All protected endpoints need `Authorization: Bearer <jwt>`.
 | GET | `/api/notifications` | Current user's notifications |
 | PATCH | `/api/notifications/:id/read` | Mark one notification read |
 | PATCH | `/api/notifications/read-all` | Mark all read |
+| POST | `/api/chatbot` | Ask the FAQ assistant; optionally send a bearer token for authorized complaint lookup. Body: `{ "message": "...", "history": [] }` |
+
+Chat requests are limited to 20 per IP per 15 minutes. When AI is enabled, messages and up to eight recent turns are sent to the configured OpenAI model. Complaint details are included only when relevant; regular users are restricted to their own records, while administrators can query complaint records. When AI is disabled, supported FAQs and complaint lookups use local responses.

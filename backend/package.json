@@ -1,7 +1,7 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "description": "AI-assisted complaint management backend",
+  "description": "Campus Resolve AI-assisted complaint management backend",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

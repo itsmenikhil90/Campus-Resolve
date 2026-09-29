@@ -3,16 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AI-COMPLY — Complaint Management</title>
+<title>Campus Resolve — Complaint Management</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700;9..144,900&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="chatbot.css">
 </head>
 <body>
  
 <div class="preloader" id="preloader" aria-hidden="true">
-  <span class="preloader-brand">AI-COMPLY</span>
+  <span class="preloader-brand">Campus Resolve</span>
 </div>
  
 <canvas id="particleCanvas" class="particle-canvas" aria-hidden="true"></canvas>
@@ -26,7 +27,7 @@
   <div class="header-inner">
     <a class="brand" href="#top">
       <span class="brand-text">
-        <strong>AI-COMPLY</strong>
+        <strong>Campus Resolve</strong>
         <em>Complaint Management</em>
       </span>
     </a>
@@ -314,7 +315,7 @@
 <footer class="site-footer">
   <div class="footer-inner">
     <div class="footer-brand">
-      <p><strong>AI-COMPLY</strong><br>AI-assisted complaint management</p>
+      <p><strong>Campus Resolve</strong><br>AI-assisted complaint management</p>
     </div>
     <div class="footer-links">
       <div>
@@ -330,7 +331,7 @@
     </div>
   </div>
   <div class="footer-bar">
-    <span>© <span id="year"></span> AI-COMPLY</span>
+    <span>© <span id="year"></span> Campus Resolve</span>
   </div>
 </footer>
  
@@ -381,7 +382,19 @@
 <button class="back-to-top" id="backToTop" aria-label="Back to top">↑</button>
 <canvas class="confetti-canvas" id="confettiCanvas" aria-hidden="true"></canvas>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
- 
+<button class="chat-launcher" id="chatLauncher" type="button" aria-label="Open Campus Resolve assistant" aria-controls="chatWindow" aria-expanded="false">✦</button>
+<section class="chat-window" id="chatWindow" aria-label="Campus Resolve assistant" hidden>
+  <header class="chat-header"><div><strong>Campus Resolve Assistant</strong><small>FAQs and private complaint tracking</small></div><button class="chat-close" id="chatClose" type="button" aria-label="Close assistant">×</button></header>
+  <div class="chat-messages" id="chatMessages" role="log" aria-live="polite" aria-relevant="additions"></div>
+  <div class="chat-suggestions" aria-label="Suggested questions">
+    <button type="button" data-chat-prompt="How do I file a complaint?">How do I file?</button>
+    <button type="button" data-chat-prompt="What does In Progress mean?">Explain statuses</button>
+    <button type="button" data-chat-prompt="What is the status of my latest complaint?">My latest update</button>
+  </div>
+  <p class="chat-disclosure">When AI is enabled, your messages go to the configured AI provider. Complaint details are shared only when needed to answer a complaint question and only from records you can access. Without AI, supported FAQs and complaint lookups are answered locally.</p>
+  <form class="chat-form" id="chatForm"><input id="chatInput" maxlength="1000" aria-label="Message the assistant" placeholder="Ask a question…" required><button id="chatSend" type="submit">Send</button></form>
+</section>
+<script src="chatbot.js"></script>
 <script src="script.js"></script>
 </body>
 </html>
