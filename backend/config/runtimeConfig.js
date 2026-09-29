@@ -30,9 +30,7 @@ const validateProductionConfig = (env = process.env) => {
         }
     }
 
-    for (const key of ["SMTP_HOST", "SMTP_USER", "SMTP_PASS", "EMAIL_FROM"]) {
-        if (!env[key]?.trim()) errors.push(`${key} must be configured for password reset emails.`);
-    }
+    
 
     if (env.STORAGE_DRIVER !== "s3") {
         errors.push("STORAGE_DRIVER must be set to s3 for durable production attachment storage.");
