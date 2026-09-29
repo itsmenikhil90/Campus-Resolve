@@ -5,7 +5,7 @@
      BASIC SETTINGS
      =========================================================== */
 
-  const API_BASE = window.CAMPUS_RESOLVE_API_BASE || window.AI_COMPLY_API_BASE || "/api";
+ const API_BASE = "https://campus-resolve-kl3e.onrender.com/api";
 
   const prefersReducedMotion =
     window.matchMedia("(prefers-reduced-motion: reduce)").matches;
