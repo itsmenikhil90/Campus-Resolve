@@ -9,28 +9,33 @@ dotenv.config();
 
 const createAdmin = async () => {
     try {
+        const email = process.env.ADMIN_EMAIL;
+        const password = process.env.ADMIN_PASSWORD;
+        if (!email || !password) {
+            throw new Error("Set ADMIN_EMAIL and ADMIN_PASSWORD before creating an administrator.");
+        }
 
         await connectDB();
 
         const existingAdmin = await User.findOne({
-            email: "admin@ambalika.ac.in"
+            email
         });
 
         if (existingAdmin) {
             console.log("⚠️ Admin already exists.");
-            console.log("Email: admin@ambalika.ac.in");
+            console.log(`Email: ${email}`);
             process.exit(0);
         }
 
         const hashedPassword = await bcrypt.hash(
-            "Admin@12345",
+            password,
             10
         );
 
         const admin = await User.create({
             name: "Admin User",
 
-            email: "admin@ambalika.ac.in",
+            email,
 
             password: hashedPassword,
 
@@ -46,8 +51,7 @@ const createAdmin = async () => {
         console.log("====================================");
         console.log("✅ ADMIN CREATED SUCCESSFULLY");
         console.log("====================================");
-        console.log("Email    : admin@ambalika.ac.in");
-        console.log("Password : Admin@12345");
+        console.log(`Email    : ${email}`);
         console.log("Role     : admin");
         console.log("====================================");
 

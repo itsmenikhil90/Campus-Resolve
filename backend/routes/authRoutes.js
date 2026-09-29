@@ -17,7 +17,7 @@ const router = express.Router();
 
 
 // =====================================================
-// STUDENT REGISTER
+// USER REGISTER
 // =====================================================
 
 router.post(

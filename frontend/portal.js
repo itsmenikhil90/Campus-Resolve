@@ -1,7 +1,16 @@
 (() => {
-  const API = window.AIMT_API_BASE || "/api";
-  const token = localStorage.getItem("aimt_auth_token");
-  const user = JSON.parse(localStorage.getItem("aimt_auth_user") || "null");
+  const API = window.AI_COMPLY_API_BASE || "/api";
+  const token = localStorage.getItem("aicomply_auth_token") || localStorage.getItem("aimt_auth_token");
+  const storedUser = localStorage.getItem("aicomply_auth_user") || localStorage.getItem("aimt_auth_user");
+  const user = JSON.parse(storedUser || "null");
+  if (token && !localStorage.getItem("aicomply_auth_token")) {
+    localStorage.setItem("aicomply_auth_token", token);
+    localStorage.removeItem("aimt_auth_token");
+  }
+  if (storedUser && !localStorage.getItem("aicomply_auth_user")) {
+    localStorage.setItem("aicomply_auth_user", storedUser);
+    localStorage.removeItem("aimt_auth_user");
+  }
   const app = document.querySelector("#app");
   const admin = user?.role === "admin";
 
@@ -35,7 +44,10 @@
     });
     const data = await response.json().catch(() => ({ message: "Network error" }));
     if (response.status === 401 || response.status === 403) {
-      localStorage.clear();
+      localStorage.removeItem("aicomply_auth_token");
+      localStorage.removeItem("aicomply_auth_user");
+      localStorage.removeItem("aimt_auth_token");
+      localStorage.removeItem("aimt_auth_user");
       location.href = "index.html";
       return data;
     }
@@ -43,9 +55,12 @@
     return data;
   };
 
-  document.querySelector("#identity").textContent = `${user.name} · ${admin ? "Administrator" : "Student"}`;
+  document.querySelector("#identity").textContent = `${user.name} · ${admin ? "Administrator" : "User"}`;
   document.querySelector("#logout").onclick = () => {
-    localStorage.clear();
+    localStorage.removeItem("aicomply_auth_token");
+    localStorage.removeItem("aicomply_auth_user");
+    localStorage.removeItem("aimt_auth_token");
+    localStorage.removeItem("aimt_auth_user");
     location.href = "index.html";
   };
 
@@ -65,7 +80,7 @@
 
   const table = (items, isAdmin) => `
     <table>
-      <thead><tr><th>Ticket</th><th>Title</th>${isAdmin ? "<th>Student</th>" : ""}<th>Priority</th><th>Status</th><th>Updated</th><th>Actions</th></tr></thead>
+      <thead><tr><th>Ticket</th><th>Title</th>${isAdmin ? "<th>User</th>" : ""}<th>Priority</th><th>Status</th><th>Updated</th><th>Actions</th></tr></thead>
       <tbody>${items.map(complaint => `
         <tr>
           <td>${esc(complaint.ticketId || complaint._id)}</td>
@@ -110,10 +125,11 @@
       resolved: list.filter(item => item.status === "Resolved").length,
       rejected: list.filter(item => item.status === "Rejected").length
     };
-    app.innerHTML = `<h1>Student dashboard</h1><section class="cards">${statusCards(counts)}</section>
+    app.innerHTML = `<h1>My dashboard</h1><section class="cards">${statusCards(counts)}</section>
       <section class="panel"><h2>Submit a complaint</h2><form id="new">
         <div class="row"><input name="title" required placeholder="Complaint title"><select name="category"><option>Other</option><option>Infrastructure</option><option>Academics</option><option>Hostel</option><option>IT/Technical</option></select><select name="priority"><option>Medium</option><option>Low</option><option>High</option><option>Critical</option></select></div>
         <input name="department" value="${esc(user.department)}" placeholder="Department"><p><textarea required name="description" placeholder="Describe the issue"></textarea></p>
+        <label>Attachments (up to 3 JPEG, PNG, WebP, or PDF files, 5 MB each)<input name="attachments" type="file" accept=".jpg,.jpeg,.png,.webp,.pdf" multiple></label>
         <button>Submit complaint</button></form></section><h2>Your complaints</h2>${table(list, false)}`;
     document.querySelector("#new").onsubmit = async event => {
       event.preventDefault();
@@ -134,7 +150,7 @@
   async function adminPanel() {
     const [stats, all] = await Promise.all([call("/complaints/admin/stats"), call("/complaints/admin/all")]);
     app.innerHTML = `<h1>Admin dashboard</h1><section class="cards">${statusCards(stats.data.stats)}</section>
-      <div class="row"><input id="search" placeholder="Search ticket, title, student, email"><button id="pending">Pending approvals</button><button id="reload">Refresh</button></div>
+      <div class="row"><input id="search" placeholder="Search ticket, title, user, email"><button id="pending">Pending approvals</button><button id="reload">Refresh</button></div>
       <h2>Complaint management</h2>${table(all.data, true)}`;
     document.querySelector("#search").onchange = async event => {
       const data = await call(`/complaints/admin/all?search=${encodeURIComponent(event.target.value)}`);
@@ -174,13 +190,35 @@
   async function detail(id, isAdmin) {
     try {
       const complaint = (await call(`/complaints/${id}`)).data;
+      const attachments = (complaint.images || []).map((_, index) =>
+        `<button type="button" data-download="${index}" data-complaint="${esc(id)}">Download attachment ${index + 1}</button>`
+      ).join(" ");
       app.insertAdjacentHTML("afterbegin", `<details open><summary>${esc(complaint.ticketId)} — ${esc(complaint.title)}</summary>
         <p>${esc(complaint.description)}</p><p><b>Status:</b> ${esc(complaint.status)} · <b>AI summary:</b> ${esc(complaint.aiAnalysis?.summary)}</p>
+        ${attachments ? `<p><b>Attachments:</b> ${attachments}</p>` : ""}
         <p><b>Admin response:</b> ${esc(complaint.adminResponse || "None")}</p><h3>Comments</h3><ul>${comments(complaint)}</ul>
         ${isAdmin ? `<textarea id="comment-${id}" placeholder="Add an internal/public comment"></textarea><button data-comment="${id}">Add comment</button>
-          <textarea id="response-${id}" placeholder="Send a response to the student"></textarea><button data-response="${id}">Send response</button>
+          <textarea id="response-${id}" placeholder="Send a response to the user"></textarea><button data-response="${id}">Send response</button>
           ${["Under Review", "Assigned", "In Progress"].includes(complaint.status) ? `<button data-advance="${id}">Advance workflow</button>` : ""}` : ""}
         <p><b>History:</b> ${(complaint.statusHistory || []).map(item => `${esc(item.status)} — ${esc(item.note)} (${new Date(item.changedAt).toLocaleString()})`).join(" → ")}</p></details>`);
+      document.querySelectorAll(`[data-complaint="${id}"][data-download]`).forEach(button => {
+        button.addEventListener("click", async () => {
+          try {
+            const response = await fetch(`${API}/complaints/${encodeURIComponent(id)}/attachments/${button.dataset.download}`, {
+              headers: { Authorization: `Bearer ${token}` }
+            });
+            if (!response.ok) throw new Error("Could not download attachment");
+            const url = URL.createObjectURL(await response.blob());
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = `attachment-${Number(button.dataset.download) + 1}`;
+            link.click();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+          } catch (error) {
+            toast(error.message);
+          }
+        });
+      });
       document.querySelector(`[data-comment="${id}"]`)?.addEventListener("click", async () => {
         const text = document.querySelector(`#comment-${id}`).value.trim();
         if (!text) return;

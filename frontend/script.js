@@ -5,7 +5,7 @@
      BASIC SETTINGS
      =========================================================== */
 
-  const API_BASE = window.AIMT_API_BASE || "/api";
+  const API_BASE = window.AI_COMPLY_API_BASE || "/api";
 
   const prefersReducedMotion =
     window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -35,14 +35,11 @@
    BACKEND COMPLAINT API
    =========================================================== */
 
-const STORE_KEY = "aimt_complaints_v1";
-
 let backendComplaints = [];
-let complaintsLoading = false;
 
 
 /* ===========================================================
-   GET STUDENT COMPLAINTS
+   GET USER COMPLAINTS
    =========================================================== */
 
 async function fetchMyComplaints() {
@@ -56,8 +53,6 @@ async function fetchMyComplaints() {
 
     try {
 
-        complaintsLoading = true;
-
         const response = await fetch(
             `${API_BASE}/complaints/my`,
             {
@@ -68,6 +63,13 @@ async function fetchMyComplaints() {
             }
         );
 
+        if (response.status === 401) {
+            clearAuth();
+            updateAuthUI();
+            backendComplaints = [];
+            return [];
+        }
+
         const data = await response.json();
 
         if (!response.ok) {
@@ -77,9 +79,31 @@ async function fetchMyComplaints() {
             );
         }
 
+        const account = getAuthUser();
         backendComplaints =
             Array.isArray(data.complaints)
-                ? data.complaints
+                ? data.complaints.map(complaint => ({
+                    id: complaint.ticketId || String(complaint._id),
+                    ticketId: complaint.ticketId,
+                    filedAt: complaint.createdAt,
+                    resolvedAt: complaint.resolvedAt,
+                    description: complaint.description,
+                    name: account?.name || "My account",
+                    category: complaint.category,
+                    priority: complaint.priority === "Critical"
+                        ? "Urgent"
+                        : complaint.priority === "High"
+                            ? "Time-sensitive"
+                            : "Routine",
+                    status: ({
+                        "Pending Approval": "Submitted",
+                        "Under Review": "Under Review",
+                        Assigned: "In Progress",
+                        "In Progress": "In Progress",
+                        Resolved: "Resolved",
+                        Rejected: "Rejected"
+                    })[complaint.status] || complaint.status
+                }))
                 : [];
 
         return backendComplaints;
@@ -99,10 +123,6 @@ async function fetchMyComplaints() {
 
         return [];
 
-    } finally {
-
-        complaintsLoading = false;
-
     }
 }
 
@@ -120,41 +140,7 @@ function loadComplaints() {
    SAVE COMPLAINTS
    =========================================================== */
 
-function saveComplaints(list) {
-
-    /*
-      Complaints are now stored in MongoDB.
-      This function is kept only so existing
-      frontend code does not break.
-    */
-
-    backendComplaints =
-        Array.isArray(list)
-            ? list
-            : [];
-
-}
-
-
 /* ===========================================================
-   MAKE TICKET ID
-   =========================================================== */
-
-function makeTicketId(date) {
-
-    const year =
-        date.getFullYear();
-
-    const rand =
-        Math.floor(
-            1000 +
-            Math.random() * 9000
-        );
-
-    return `AIMT-${year}-${rand}`;
-}
-
-  /* ===========================================================
      STATUS
      =========================================================== */
 
@@ -442,11 +428,11 @@ function makeTicketId(date) {
      =========================================================== */
 
   const tickerMessages = [
-    "Grievance Cell now routes complaints automatically",
-    "Median resolution time this term: 2–4 working days",
-    "Anonymous filing available for every category",
-    "Urgent complaints are flagged for same-day review",
-    "Track any ticket instantly with your complaint number"
+    "Submit and track complaints securely",
+    "Status changes stay connected to each ticket",
+    "Attach supporting files to a complaint",
+    "Private dashboards for users and administrators",
+    "Authorized administrators manage the review workflow"
   ];
 
 
@@ -595,12 +581,12 @@ function makeTicketId(date) {
      =========================================================== */
 
   const cycleWords = [
-    "Academics",
-    "Hostel life",
-    "Mess food",
-    "Faculty issues",
-    "Campus infra",
-    "Fees & admin"
+    "Account access",
+    "Service issues",
+    "Facilities",
+    "Billing",
+    "Staff support",
+    "Operations"
   ];
 
 
@@ -1059,41 +1045,6 @@ function makeTicketId(date) {
 
 
   /* ===========================================================
-     ANONYMOUS
-     =========================================================== */
-
-  const anonToggle =
-    document.getElementById(
-      "anonToggle"
-    );
-
-  const idFields =
-    document.getElementById(
-      "idFields"
-    );
-
-
-  if (
-    anonToggle &&
-    idFields
-  ) {
-
-    anonToggle.addEventListener(
-      "change",
-      () => {
-
-        idFields.style.display =
-          anonToggle.checked
-            ? "none"
-            : "grid";
-
-      }
-    );
-
-  }
-
-
-  /* ===========================================================
      COMPLAINT ROUTING
      =========================================================== */
 
@@ -1323,10 +1274,9 @@ function makeTicketId(date) {
       "change",
       () => {
 
-        fileDropLabel.textContent =
-          fileInput.files.length
-            ? fileInput.files[0].name
-            : "Click to choose a file, or drag one here";
+        fileDropLabel.textContent = fileInput.files.length
+          ? `${fileInput.files.length} file${fileInput.files.length === 1 ? "" : "s"} selected`
+          : "Click to choose a file, or drag one here";
 
       }
     );
@@ -1345,6 +1295,10 @@ function makeTicketId(date) {
               "is-dragover",
               evt === "dragover"
             );
+            if (evt === "drop" && e.dataTransfer?.files.length) {
+              fileInput.files = e.dataTransfer.files;
+              fileInput.dispatchEvent(new Event("change", { bubbles: true }));
+            }
 
           }
         );
@@ -1367,232 +1321,81 @@ function makeTicketId(date) {
 
 
   if (form) {
-
-    form.addEventListener(
-      "submit",
-      (e) => {
-
-        e.preventDefault();
-
-
-        const isAnon =
-          anonToggle &&
-          anonToggle.checked;
-
-
-        const description =
-          descriptionEl.value.trim();
-
-
-        const category =
-          categorySelect.value ||
-          "Other";
-
-
-        if (!description) {
-
-          showToast(
-            "Tell us what happened before submitting."
-          );
-
-          descriptionEl.focus();
-
-          return;
-        }
-
-
-        const now =
-          new Date();
-
-
-        const complaint = {
-
-          id:
-            makeTicketId(now),
-
-          filedAt:
-            now.toISOString(),
-
-          anonymous:
-            !!isAnon,
-
-          name:
-            isAnon
-              ? "Anonymous"
-              : (
-                  document
-                    .getElementById(
-                      "fullName"
-                    )
-                    .value
-                    .trim() ||
-                  "Anonymous"
-                ),
-
-          rollNo:
-            isAnon
-              ? ""
-              : document
-                  .getElementById(
-                    "rollNo"
-                  )
-                  .value
-                  .trim(),
-
-          department:
-            isAnon
-              ? ""
-              : document
-                  .getElementById(
-                    "deptSelect"
-                  )
-                  .value,
-
-          contact:
-            isAnon
-              ? ""
-              : document
-                  .getElementById(
-                    "contact"
-                  )
-                  .value
-                  .trim(),
-
-          category,
-
-          priority:
-            document
-              .getElementById(
-                "priority"
-              )
-              .value,
-
-          description,
-
-          hasAttachment:
-            !!(
-              fileInput &&
-              fileInput.files.length
-            ),
-
-          status:
-            "Submitted"
-
-        };
-
-
-        const list =
-          loadComplaints();
-
-
-        list.unshift(
-          complaint
-        );
-
-
-        saveComplaints(
-          list
-        );
-
-
-        lastAddedId =
-          complaint.id;
-
-
-        form.reset();
-
-
-        if (idFields) {
-
-          idFields.style.display =
-            "grid";
-
-        }
-
-
-        if (charCountEl) {
-
-          charCountEl.textContent =
-            "0";
-
-        }
-
-
-        if (assistValueEl) {
-
-          assistValueEl.textContent =
-            "Start typing below…";
-
-        }
-
-
-        if (assistConfEl) {
-
-          assistConfEl.textContent =
-            "";
-
-        }
-
-
-        if (assistBarFill) {
-
-          assistBarFill.style.width =
-            "0%";
-
-        }
-
-
-        if (assistCard) {
-
-          assistCard.classList.remove(
-            "is-active"
-          );
-
-        }
-
-
-        if (fileDropLabel) {
-
-          fileDropLabel.textContent =
-            "Click to choose a file, or drag one here";
-
-        }
-
-
-        userPickedCategory =
-          false;
-
-
-        showToast(
-          `Filed. Your ticket number is ${complaint.id} — save it to track progress.`
-        );
-
-
-        burstConfetti();
-
-        renderStats();
-
-        renderBoard();
-
-        populateCategoryFilter();
-
-
-        const trackInput =
-          document.getElementById(
-            "trackInput"
-          );
-
-
-        if (trackInput) {
-
-          trackInput.value =
-            complaint.id;
-
-        }
-
+    form.addEventListener("submit", async event => {
+      event.preventDefault();
+
+      const token = getAuthToken();
+      if (!token) {
+        authModal.hidden = false;
+        showAuthMessage("Sign in or create an account before submitting a complaint.", true);
+        return;
       }
-    );
 
+      const title = document.getElementById("complaintTitle").value.trim();
+      const description = descriptionEl.value.trim();
+      const category = categorySelect.value;
+      const department = document.getElementById("department").value.trim();
+      const priority = ({
+        "Routine": "Low",
+        "Time-sensitive": "High",
+        "Urgent": "Critical"
+      })[document.getElementById("priority").value] || "Medium";
+
+      if (!title || !description || !category) {
+        showToast("Enter a title and description, then choose a category.");
+        return;
+      }
+      if (fileInput.files.length > 3) {
+        showToast("You can attach up to three files.");
+        return;
+      }
+
+      const button = form.querySelector("button[type='submit']");
+      const originalMarkup = button.innerHTML;
+      const payload = new FormData();
+      payload.append("title", title);
+      payload.append("description", description);
+      payload.append("category", category);
+      payload.append("priority", priority);
+      if (department) payload.append("department", department);
+      for (const file of fileInput.files) payload.append("attachments", file, file.name);
+
+      button.disabled = true;
+      button.textContent = "Submitting…";
+      try {
+        const response = await fetch(`${API_BASE}/complaints`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+          body: payload
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.message || "Could not submit complaint.");
+
+        lastAddedId = result.data.ticketId;
+        await fetchMyComplaints();
+        form.reset();
+        if (charCountEl) charCountEl.textContent = "0";
+        if (assistValueEl) assistValueEl.textContent = "Start typing below…";
+        if (assistConfEl) assistConfEl.textContent = "";
+        if (assistBarFill) assistBarFill.style.width = "0%";
+        if (assistCard) assistCard.classList.remove("is-active");
+        if (fileDropLabel) fileDropLabel.textContent = "Click to choose a file, or drag one here";
+        userPickedCategory = false;
+
+        showToast(`Submitted. Your ticket number is ${lastAddedId}.`);
+        const trackInput = document.getElementById("trackInput");
+        if (trackInput) trackInput.value = lastAddedId;
+        renderStats();
+        renderBoard();
+        populateCategoryFilter();
+        burstConfetti();
+      } catch (error) {
+        showToast(error.message);
+      } finally {
+        button.disabled = false;
+        button.innerHTML = originalMarkup;
+      }
+    });
   }
 
 
@@ -1715,12 +1518,12 @@ function makeTicketId(date) {
       list.length;
 
 
-    const resolved =
-      list.filter(
-        (c) =>
-          c.status ===
-          "Resolved"
-      ).length;
+    const resolvedComplaints = list.filter(c => c.status === "Resolved");
+    const resolved = resolvedComplaints.length;
+    const resolutionTimes = resolvedComplaints
+      .map(complaint => Math.max(0, new Date(complaint.resolvedAt).getTime() - new Date(complaint.filedAt).getTime()))
+      .filter(Number.isFinite)
+      .sort((a, b) => a - b);
 
 
     const inProgress =
@@ -1764,12 +1567,13 @@ function makeTicketId(date) {
 
 
     if (statTime) {
-
-      statTime.textContent =
-        resolved > 0
-          ? "2–4 days"
-          : "—";
-
+      const middle = Math.floor(resolutionTimes.length / 2);
+      const median = resolutionTimes.length % 2
+        ? resolutionTimes[middle]
+        : (resolutionTimes[middle - 1] + resolutionTimes[middle]) / 2;
+      statTime.textContent = resolutionTimes.length
+        ? `${(median / (24 * 60 * 60 * 1000)).toFixed(1)} days`
+        : "—";
     }
 
   }
@@ -1820,7 +1624,7 @@ function makeTicketId(date) {
 
 
       trackResult.innerHTML =
-        `<p>No complaint found with ticket <strong>${escapeHtml(id)}</strong> on this device.</p>`;
+        `<p>No complaint with ticket <strong>${escapeHtml(id)}</strong> was found in your account.</p>`;
 
 
       return;
@@ -1828,14 +1632,12 @@ function makeTicketId(date) {
     }
 
 
-    const stepIndex =
-      STATUS_STEPS.indexOf(
-        found.status
-      );
+      const stepIndex = STATUS_STEPS.indexOf(found.status);
 
 
-    const timelineHtml =
-      STATUS_STEPS
+    const timelineHtml = found.status === "Rejected"
+      ? `<li class="is-current">Rejected</li>`
+      : STATUS_STEPS
         .map(
           (step, i) => {
 
@@ -1998,23 +1800,7 @@ function makeTicketId(date) {
   }
 
 
-  function nextStatus(status) {
-
-    const idx =
-      STATUS_STEPS.indexOf(
-        status
-      );
-
-
-    return idx <
-      STATUS_STEPS.length - 1
-      ? STATUS_STEPS[idx + 1]
-      : status;
-
-  }
-
-
-  function renderBoard() {
+    function renderBoard() {
 
     if (!boardBody) return;
 
@@ -2126,11 +1912,7 @@ function makeTicketId(date) {
             </td>
 
             <td>
-              ${escapeHtml(
-                c.anonymous
-                  ? "Anonymous"
-                  : c.name
-              )}
+              ${escapeHtml(c.name)}
             </td>
 
             <td>
@@ -2157,21 +1939,7 @@ function makeTicketId(date) {
             </td>
 
             <td>
-              ${
-                c.status !==
-                "Resolved"
-                  ? `
-                    <button
-                      class="row-link"
-                      data-advance="${escapeHtml(
-                        c.id
-                      )}"
-                    >
-                      Advance
-                    </button>
-                  `
-                  : ""
-              }
+              <a class="row-link" href="#track" data-track-ticket="${escapeHtml(c.id)}">Track</a>
             </td>
 
           </tr>
@@ -2187,64 +1955,13 @@ function makeTicketId(date) {
 
 
   if (boardBody) {
-
-    boardBody.addEventListener(
-      "click",
-      (e) => {
-
-        const btn =
-          e.target.closest(
-            "[data-advance]"
-          );
-
-
-        if (!btn) return;
-
-
-        const id =
-          btn.getAttribute(
-            "data-advance"
-          );
-
-
-        const list =
-          loadComplaints();
-
-
-        const item =
-          list.find(
-            (c) =>
-              c.id === id
-          );
-
-
-        if (item) {
-
-          item.status =
-            nextStatus(
-              item.status
-            );
-
-
-          saveComplaints(
-            list
-          );
-
-
-          renderBoard();
-
-          renderStats();
-
-
-          showToast(
-            `${id} moved to "${item.status}".`
-          );
-
-        }
-
-      }
-    );
-
+    boardBody.addEventListener("click", event => {
+      const link = event.target.closest("[data-track-ticket]");
+      if (!link) return;
+      const input = document.getElementById("trackInput");
+      if (input) input.value = link.getAttribute("data-track-ticket");
+      renderTrackResult(link.getAttribute("data-track-ticket"));
+    });
   }
 
 
@@ -2669,10 +2386,14 @@ function makeTicketId(date) {
      =========================================================== */
 
   function getAuthToken() {
-
-    return localStorage.getItem(
-      "aimt_auth_token"
-    );
+    const tokenKey = "aicomply_auth_token";
+    const legacyTokenKey = "aimt_auth_token";
+    const token = localStorage.getItem(tokenKey) || localStorage.getItem(legacyTokenKey);
+    if (token && !localStorage.getItem(tokenKey)) {
+      localStorage.setItem(tokenKey, token);
+      localStorage.removeItem(legacyTokenKey);
+    }
+    return token;
 
   }
 
@@ -2681,11 +2402,14 @@ function makeTicketId(date) {
 
     try {
 
-      return JSON.parse(
-        localStorage.getItem(
-          "aimt_auth_user"
-        ) || "null"
-      );
+      const userKey = "aicomply_auth_user";
+      const legacyUserKey = "aimt_auth_user";
+      const user = localStorage.getItem(userKey) || localStorage.getItem(legacyUserKey);
+      if (user && !localStorage.getItem(userKey)) {
+        localStorage.setItem(userKey, user);
+        localStorage.removeItem(legacyUserKey);
+      }
+      return JSON.parse(user || "null");
 
     } catch (error) {
 
@@ -2706,7 +2430,7 @@ function makeTicketId(date) {
     ) {
 
       localStorage.setItem(
-        "aimt_auth_token",
+        "aicomply_auth_token",
         data.token
       );
 
@@ -2719,7 +2443,7 @@ function makeTicketId(date) {
     ) {
 
       localStorage.setItem(
-        "aimt_auth_user",
+        "aicomply_auth_user",
         JSON.stringify(
           data.user
         )
@@ -2732,13 +2456,10 @@ function makeTicketId(date) {
 
   function clearAuth() {
 
-    localStorage.removeItem(
-      "aimt_auth_token"
-    );
-
-    localStorage.removeItem(
-      "aimt_auth_user"
-    );
+    localStorage.removeItem("aicomply_auth_token");
+    localStorage.removeItem("aicomply_auth_user");
+    localStorage.removeItem("aimt_auth_token");
+    localStorage.removeItem("aimt_auth_user");
 
   }
 
@@ -2769,7 +2490,7 @@ function makeTicketId(date) {
       } else {
 
         authBtn.textContent =
-          "Student Login";
+          "User Login";
 
       }
 
@@ -2829,6 +2550,12 @@ function makeTicketId(date) {
         const loginEmailInput = document.getElementById("loginEmail");
         loginEmailInput.type = "email";
         loginEmailInput.placeholder = "you@example.com";
+        loginForm.hidden = false;
+        registerForm.hidden = true;
+        forgotPasswordForm.hidden = true;
+        resetPasswordForm.hidden = true;
+        authTitle.textContent = "User Login";
+        authSubtitle.textContent = "Sign in to submit and track complaints.";
         forgotPasswordBtn.hidden = false;
 
         const tabs = document.querySelector(".auth-tabs");
@@ -2861,7 +2588,7 @@ function makeTicketId(date) {
       const tabs = document.querySelector(".auth-tabs");
       if (tabs) tabs.hidden = true;
       authTitle.textContent = "Administrator Login";
-      authSubtitle.textContent = "Sign in with your authorized AIMT administrator account.";
+      authSubtitle.textContent = "Sign in with your administrator account.";
       showAuthMessage("");
     });
   }
@@ -2943,7 +2670,7 @@ function makeTicketId(date) {
 
 
             authTitle.textContent =
-              "Student Login";
+              "User Login";
 
             const loginEmailInput = document.getElementById("loginEmail");
             loginEmailInput.type = "email";
@@ -2982,11 +2709,11 @@ function makeTicketId(date) {
 
 
             authTitle.textContent =
-              "Create Student Account";
+              "Create Account";
 
 
             authSubtitle.textContent =
-              "Create your AIMT student grievance account.";
+              "Create your account to submit and track complaints.";
 
 
             registerForm.classList.remove(
@@ -3373,7 +3100,7 @@ function makeTicketId(date) {
       /* UPDATE UI */
 
       // Login responses include the role; portal.html selects the correct
-      // student or administrator experience after this authenticated redirect.
+      // user or administrator experience after this authenticated redirect.
       setTimeout(() => { window.location.href = "portal.html"; }, 300);
 
       updateAuthUI();
@@ -3461,9 +3188,9 @@ function makeTicketId(date) {
     forgotPasswordForm.hidden = true;
     resetPasswordForm.hidden = true;
     forgotPasswordBtn.hidden = adminLoginMode;
-    authTitle.textContent = adminLoginMode ? "Administrator Login" : "Student Login";
+    authTitle.textContent = adminLoginMode ? "Administrator Login" : "User Login";
     authSubtitle.textContent = adminLoginMode
-      ? "Sign in with your authorized AIMT administrator account."
+      ? "Sign in with your administrator account."
       : "Sign in to submit and track complaints.";
   };
 
@@ -3473,7 +3200,7 @@ function makeTicketId(date) {
       loginForm.hidden = true;
       forgotPasswordForm.hidden = false;
       resetPasswordForm.hidden = true;
-      authTitle.textContent = "Reset student password";
+      authTitle.textContent = "Reset your password";
       authSubtitle.textContent = "We will send a six-digit OTP to your registered email.";
       showAuthMessage("");
     });
@@ -3604,13 +3331,12 @@ function makeTicketId(date) {
   }
 
 
-  populateCategoryFilter();
-
-  renderStats();
-
-  renderBoard();
-
   updateAuthUI();
+  fetchMyComplaints().then(() => {
+    populateCategoryFilter();
+    renderStats();
+    renderBoard();
+  });
 
 })();
 
@@ -3621,7 +3347,7 @@ function makeTicketId(date) {
 
 async function testBackendConnection() {
     try {
-        const response = await fetch(`${window.AIMT_API_BASE || "/api"}/health`);
+        const response = await fetch(`${window.AI_COMPLY_API_BASE || "/api"}/health`);
 
         const data = await response.json();
 

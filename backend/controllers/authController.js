@@ -1,9 +1,8 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
-const nodemailer = require("nodemailer");
-
 const User = require("../models/user");
+const { sendPasswordResetOtp } = require("../services/emailService");
 
 
 // =====================================================
@@ -20,16 +19,7 @@ const generateToken = (userId) => {
 
 
 // =====================================================
-// EMAIL TRANSPORTER
-// =====================================================
-
-const transporter = process.env.SMTP_HOST && process.env.SMTP_USER
-    ? nodemailer.createTransport({ host: process.env.SMTP_HOST, port: Number(process.env.SMTP_PORT || 587), secure: Number(process.env.SMTP_PORT) === 465, auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS } })
-    : null;
-
-
-// =====================================================
-// REGISTER STUDENT
+// REGISTER USER
 // =====================================================
 
 const register = async (req, res) => {
@@ -72,7 +62,7 @@ const register = async (req, res) => {
         if (existingStudent) {
             return res.status(400).json({
                 success: false,
-                message: "Student ID already registered"
+                message: "User ID already registered"
             });
         }
 
@@ -92,7 +82,7 @@ const register = async (req, res) => {
 
         res.status(201).json({
             success: true,
-            message: "Student registered successfully",
+            message: "User registered successfully",
             token,
             user: {
                 id: user._id,
@@ -135,7 +125,7 @@ const login = async (req, res) => {
         if (!identifier || !password) {
             return res.status(400).json({
                 success: false,
-                message: "Email or student ID and password are required"
+                message: "Email or user ID and password are required"
             });
         }
 
@@ -233,73 +223,17 @@ const forgotPassword = async (req, res) => {
 
         await user.save();
 
-        const mailOptions = {
-            from:
-                process.env.EMAIL_FROM ||
-                process.env.SMTP_FROM ||
-                process.env.SMTP_USER,
-
-            to: user.email,
-
-            subject: "AIMT Grievance Portal - Password Reset OTP",
-
-            html: `
-                <div style="
-                    font-family: Arial, sans-serif;
-                    max-width: 600px;
-                    margin: auto;
-                    padding: 30px;
-                    background: #f8f5ed;
-                    border: 1px solid #d6c27a;
-                ">
-
-                    <h2 style="color:#142451;">
-                        AIMT Grievance Portal
-                    </h2>
-
-                    <p>
-                        Hello <strong>${user.name}</strong>,
-                    </p>
-
-                    <p>
-                        We received a request to reset the password
-                        for your AIMT Grievance Portal account.
-                    </p>
-
-                    <p>
-                        Use this one-time password to create a new password:
-                    </p>
-
-                    <div style="margin:30px 0;font-size:32px;letter-spacing:8px;font-weight:bold;color:#142451;">
-                        ${resetOtp}
-                    </div>
-
-                    <p>
-                        This link will expire in
-                        <strong>15 minutes</strong>.
-                    </p>
-
-                    <p>
-                        If you did not request a password reset,
-                        you can safely ignore this email.
-                    </p>
-
-                    <hr>
-
-                    <p style="font-size:12px;color:#777;">
-                        AIMT Grievance Cell<br>
-                        Ambalika Institute of Management & Technology
-                    </p>
-
-                </div>
-            `
-        };
-
-        if (!transporter) {
-            console.error("Password reset requested but email service is not configured.");
-            return res.status(503).json({ success: false, message: "Password reset email service is not configured." });
+        try {
+            await sendPasswordResetOtp({ email: user.email, name: user.name, otp: resetOtp });
+        } catch (error) {
+            user.resetPasswordOtp = null;
+            user.resetPasswordExpire = null;
+            await user.save();
+            if (error.code === "EMAIL_NOT_CONFIGURED") {
+                return res.status(503).json({ success: false, message: "Password reset email service is not configured." });
+            }
+            throw error;
         }
-        await transporter.sendMail(mailOptions);
 
         console.log(`📧 Password reset email sent to ${user.email}`);
 
@@ -456,7 +390,7 @@ const createAdmin = async (req, res) => {
         if (existingStudent) {
             return res.status(400).json({
                 success: false,
-                message: "Student ID already registered"
+                message: "User ID already registered"
             });
         }
 

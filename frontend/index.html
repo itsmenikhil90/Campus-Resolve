@@ -3,19 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AIMT Grievance Cell — Complaint Portal</title>
-<link rel="icon" href="assets/123.jpeg">
+<title>AI-COMPLY — Complaint Management</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700;9..144,900&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
-<link rel="shortcut icon" href="assets/123.jpeg" type="image/x-icon">
 </head>
 <body>
  
-<!-- preloader: crest spins in once -->
 <div class="preloader" id="preloader" aria-hidden="true">
-  <img src="assets/123.jpeg" alt="" class="preloader-crest">
+  <span class="preloader-brand">AI-COMPLY</span>
 </div>
  
 <canvas id="particleCanvas" class="particle-canvas" aria-hidden="true"></canvas>
@@ -28,10 +25,9 @@
 <header class="site-header" id="siteHeader">
   <div class="header-inner">
     <a class="brand" href="#top">
-      <img src="assets/123.jpeg" alt="AIMT crest" class="brand-crest">
       <span class="brand-text">
-        <strong>Ambalika Institute</strong>
-        <em>of Management &amp; Technology</em>
+        <strong>AI-COMPLY</strong>
+        <em>Complaint Management</em>
       </span>
     </a>
     <nav class="main-nav" id="mainNav">
@@ -41,7 +37,7 @@
       <a href="#stories">Stories</a>
       <a href="#faq">FAQ</a>
     </nav>
-    <button class="auth-btn" id="authBtn" type="button">Student Login</button>
+    <button class="auth-btn" id="authBtn" type="button">User Login</button>
     <button class="auth-btn" id="adminLoginBtn" type="button">Admin Login</button>
     <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation" aria-expanded="false">
       <span></span><span></span><span></span>
@@ -56,16 +52,15 @@
     <div class="hero-rays" aria-hidden="true"></div>
     <div class="hero-inner">
       <div class="hero-copy reveal">
-        <p class="hero-kicker">Learning Without Limits — Grievance Cell</p>
+        <p class="hero-kicker">AI-assisted complaint management</p>
         <h1>
           File it once.<br>
           We chase <span class="cycle-word" id="cycleWord">Academics</span><br>
           until it's closed.
         </h1>
         <p class="hero-lede">
-          A complaint logged here doesn't sit in an inbox. Our routing engine reads what you've written,
-          places it with the right department, and keeps a visible record until it's closed —
-          for hostel, mess, academics, faculty, infrastructure or anything in between.
+          Submit a complaint, follow its status, and get an accountable response.
+          AI-assisted routing helps administrators review each report and manage it through resolution.
         </p>
         <div class="hero-actions">
           <a href="#file" class="btn btn-primary magnetic"><span>File a complaint</span></a>
@@ -74,7 +69,7 @@
       </div>
  
       <div class="hero-panel reveal" id="heroPanel" aria-label="Live portal statistics">
-        <div class="panel-ribbon">This term, at a glance</div>
+        <div class="panel-ribbon">Your account at a glance</div>
         <dl class="stat-grid" id="statGrid">
           <div class="stat"><dt>Filed</dt><dd data-count="0" id="statTotal">0</dd></div>
           <div class="stat"><dt>Resolved</dt><dd data-count="0" id="statResolved">0</dd></div>
@@ -103,7 +98,7 @@
       </li>
       <li class="reveal tilt-card">
         <span class="step-index">3</span>
-        <h3>A committee member takes it up</h3>
+        <h3>An administrator takes it up</h3>
         <p>Every complaint gets a ticket number. Sensitive matters are flagged for confidential handling.</p>
       </li>
       <li class="reveal tilt-card">
@@ -136,37 +131,7 @@
  
       <form class="complaint-form reveal" id="complaintForm" novalidate>
         <div class="privacy-note form-row">
-          <p><strong>Account-based filing.</strong> Your identity is linked to your authenticated student account and is visible only to authorized grievance administrators.</p>
-        </div>
- 
-        <div class="form-grid" id="idFields">
-          <div class="field">
-            <label for="fullName">Full name</label>
-            <input type="text" id="fullName" name="fullName" placeholder="As per college records" required>
-          </div>
-          <div class="field">
-            <label for="rollNo">Roll number / Employee ID</label>
-            <input type="text" id="rollNo" name="rollNo" placeholder="e.g. AIMT21CS045">
-          </div>
-          <div class="field">
-            <label for="deptSelect">Branch / Department</label>
-            <select id="deptSelect" name="deptSelect">
-              <option value="">Select</option>
-              <option>Computer Science &amp; Engineering</option>
-              <option>Electronics &amp; Communication</option>
-              <option>Mechanical Engineering</option>
-              <option>Civil Engineering</option>
-              <option>Electrical Engineering</option>
-              <option>Management (MBA/BBA)</option>
-              <option>Pharmacy</option>
-              <option>Administration / Staff</option>
-              <option>Other</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="contact">Phone or email <span class="opt">(optional)</span></label>
-            <input type="text" id="contact" name="contact" placeholder="So we can reach you if needed">
-          </div>
+          <p><strong>Sign in to file.</strong> Complaints are securely linked to your account so you can follow up from your dashboard.</p>
         </div>
  
         <div class="form-grid">
@@ -199,22 +164,32 @@
         </div>
  
         <div class="field">
+          <label for="complaintTitle">Short title</label>
+          <input type="text" id="complaintTitle" name="title" maxlength="160" required placeholder="Summarize the issue">
+        </div>
+
+        <div class="field">
+          <label for="department">Department / team <span class="opt">(optional)</span></label>
+          <input type="text" id="department" name="department" maxlength="120" placeholder="Which team should review this?">
+        </div>
+
+        <div class="field">
           <label for="description">What happened</label>
           <textarea id="description" name="description" rows="6"
-            placeholder="Include when and where it happened, and what resolution you're hoping for." required></textarea>
+            maxlength="5000" placeholder="Include when and where it happened, and what resolution you're hoping for." required></textarea>
           <div class="char-count"><span id="charCount">0</span> characters</div>
         </div>
  
         <div class="field">
           <label for="attachment">Attach a file <span class="opt">(optional — photo, PDF, screenshot)</span></label>
           <div class="file-drop" id="fileDrop">
-            <input type="file" id="attachment" name="attachment">
+            <input type="file" id="attachment" name="attachments" accept=".jpg,.jpeg,.png,.webp,.pdf" multiple>
             <span id="fileDropLabel">Click to choose a file, or drag one here</span>
           </div>
         </div>
  
         <div class="form-footer">
-          <p class="form-disclaimer">Deliberately false complaints are handled under the student conduct policy.</p>
+          <p class="form-disclaimer">Abusive or knowingly false complaints may be restricted by administrators.</p>
           <button type="submit" class="btn btn-primary btn-large magnetic"><span>Submit complaint</span></button>
         </div>
       </form>
@@ -237,14 +212,14 @@
   <!-- ============ DASHBOARD / GRIEVANCE BOARD ============ -->
   <section class="dashboard" id="dashboard">
     <div class="dashboard-head reveal">
-      <h2>Grievance board</h2>
-      <p>Your complaints appear here after you sign in. Administrators can view and manage all complaints.</p>
+      <h2>Your complaints</h2>
+      <p>Sign in to see your submitted complaints and their latest statuses. Complaint records are private to your account and authorized administrators.</p>
     </div>
  
     <div class="dashboard-controls reveal">
       <div class="filter-group" role="group" aria-label="Filter by status">
         <button class="chip is-active" data-filter-status="all">All</button>
-        <button class="chip" data-filter-status="Submitted">Submitted</button>
+        <button class="chip" data-filter-status="Submitted">Pending approval</button>
         <button class="chip" data-filter-status="Under Review">Under review</button>
         <button class="chip" data-filter-status="In Progress">In progress</button>
         <button class="chip" data-filter-status="Resolved">Resolved</button>
@@ -264,7 +239,7 @@
             <th>Urgency</th>
             <th>Status</th>
             <th>Filed on</th>
-            <th></th>
+            <th>Details</th>
           </tr>
         </thead>
         <tbody id="boardBody"></tbody>
@@ -275,25 +250,25 @@
     </div>
   </section>
  
-  <!-- ============ STORIES / TESTIMONIALS ============ -->
+  <!-- ============ PLATFORM FEATURES ============ -->
   <section class="stories" id="stories">
-    <h2 class="reveal">Resolved, not just filed</h2>
+    <h2 class="reveal">A clear path to resolution</h2>
     <div class="stories-track" id="storiesTrack">
       <blockquote class="story-card reveal">
-        <p>“Hostel water supply was down for three days. Filed it at 9pm, warden had it fixed by next afternoon — and I could see the status change the whole time.”</p>
-        <cite>— 3rd year, Mechanical Engineering</cite>
+        <p>Submit issues with a description and optional supporting files, then follow their progress from your account.</p>
+        <cite>Account-based tracking</cite>
       </blockquote>
       <blockquote class="story-card reveal">
-        <p>“I wasn't sure who to even complain to about a marks discrepancy. Typed it in plain words and it landed straight with Academics.”</p>
-        <cite>— 2nd year, Computer Science &amp; Engineering</cite>
+        <p>AI can suggest a category and priority to help administrators triage incoming reports.</p>
+        <cite>Assisted review</cite>
       </blockquote>
       <blockquote class="story-card reveal">
-        <p>“Filed anonymously about a mess hygiene issue. Never had to give my name, and it still got escalated within two days.”</p>
-        <cite>— 1st year, Pharmacy</cite>
+        <p>Authorized administrators approve, assign, respond, and update the status as work progresses.</p>
+        <cite>Managed workflow</cite>
       </blockquote>
       <blockquote class="story-card reveal">
-        <p>“Being able to check the ticket status myself meant I wasn't emailing the office every other day asking for updates.”</p>
-        <cite>— Final year, MBA</cite>
+        <p>Uploaded evidence is stored privately and made available only to the reporter and administrators.</p>
+        <cite>Private attachments</cite>
       </blockquote>
     </div>
     <div class="stories-dots" id="storiesDots" aria-hidden="true"></div>
@@ -301,21 +276,21 @@
  
   <!-- ============ FAQ ============ -->
   <section class="faq" id="faq">
-    <h2 class="reveal">Questions students actually ask</h2>
+    <h2 class="reveal">Frequently asked questions</h2>
     <div class="faq-list reveal">
       <div class="faq-item">
         <button class="faq-q" aria-expanded="false">
-          <span>Can anyone see my name if I file anonymously?</span>
+          <span>Who can see my complaints?</span>
           <span class="faq-icon">+</span>
         </button>
-        <div class="faq-a"><p>No. An anonymous complaint is logged and routed like any other, but your identity is never attached to it — which also means the committee can't reach out to you directly for more details.</p></div>
+        <div class="faq-a"><p>Your complaints are visible to you and authorized administrators. Other users cannot access your records.</p></div>
       </div>
       <div class="faq-item">
         <button class="faq-q" aria-expanded="false">
           <span>How long does resolution usually take?</span>
           <span class="faq-icon">+</span>
         </button>
-        <div class="faq-a"><p>Routine matters are typically closed within 2–4 working days. Anything marked "Urgent" is flagged for same-day attention by the relevant department.</p></div>
+        <div class="faq-a"><p>Resolution times vary by issue and administrator capacity. Urgency labels help administrators prioritize review but do not guarantee a specific resolution time.</p></div>
       </div>
       <div class="faq-item">
         <button class="faq-q" aria-expanded="false">
@@ -329,7 +304,7 @@
           <span>Nothing happened after 7 days — what now?</span>
           <span class="faq-icon">+</span>
         </button>
-        <div class="faq-a"><p>Write directly to grievance@aimt.edu.in with your ticket number. Unresolved cases past a week are escalated automatically to the grievance committee head.</p></div>
+        <div class="faq-a"><p>Contact your system administrator with your ticket number. Unresolved cases can be escalated to an administrator for review.</p></div>
       </div>
     </div>
   </section>
@@ -339,24 +314,23 @@
 <footer class="site-footer">
   <div class="footer-inner">
     <div class="footer-brand">
-      <img src="assets/123.jpeg" alt="AIMT crest" class="footer-crest">
-      <p>Ambalika Institute of Management &amp; Technology<br>Lucknow, Uttar Pradesh</p>
+      <p><strong>AI-COMPLY</strong><br>AI-assisted complaint management</p>
     </div>
     <div class="footer-links">
       <div>
-        <h4>Grievance Cell</h4>
+        <h4>Complaints</h4>
         <a href="#file">File a complaint</a>
         <a href="#track">Track status</a>
         <a href="#dashboard">Grievance board</a>
       </div>
       <div>
-        <h4>Escalation</h4>
-        <p>Unresolved after 7 working days? Write to <strong>grievance@aimt.edu.in</strong></p>
+        <h4>Need help?</h4>
+        <p>Contact your system administrator and include your ticket number.</p>
       </div>
     </div>
   </div>
   <div class="footer-bar">
-    <span>© <span id="year"></span> AIMT. Learning Without Limits.</span>
+    <span>© <span id="year"></span> AI-COMPLY</span>
   </div>
 </footer>
  
@@ -365,7 +339,7 @@
   <div class="auth-backdrop" data-close-auth></div>
   <div class="auth-box" role="dialog" aria-modal="true" aria-labelledby="authTitle">
     <button class="auth-close" type="button" data-close-auth aria-label="Close">×</button>
-    <h2 id="authTitle">Student Login</h2>
+    <h2 id="authTitle">User Login</h2>
     <p id="authSubtitle">Sign in to submit and track complaints.</p>
     <div class="auth-tabs">
       <button class="auth-tab is-active" type="button" data-auth-tab="login">Login</button>
@@ -394,9 +368,9 @@
       <div class="field"><label for="registerName">Full name</label><input id="registerName" type="text" required></div>
       <div class="field"><label for="registerEmail">Email</label><input id="registerEmail" type="email" required></div>
       <div class="field"><label for="registerPassword">Password</label><input id="registerPassword" type="password" minlength="6" required></div>
-      <div class="field"><label for="registerStudentId">Student ID</label><input id="registerStudentId" type="text" required></div>
-      <div class="field"><label for="registerDepartment">Department</label><input id="registerDepartment" type="text" required></div>
-      <div class="field"><label for="registerYear">Year</label><select id="registerYear" required><option value="">Select year</option><option>1st Year</option><option>2nd Year</option><option>3rd Year</option><option>4th Year</option><option>Staff</option></select></div>
+      <div class="field"><label for="registerStudentId">User ID</label><input id="registerStudentId" type="text" required></div>
+      <div class="field"><label for="registerDepartment">Department / team</label><input id="registerDepartment" type="text" required></div>
+      <div class="field"><label for="registerYear">User type</label><select id="registerYear" required><option value="">Select type</option><option>Member</option><option>Staff</option><option>Other</option></select></div>
       <button class="btn btn-primary btn-large" type="submit"><span>Create account</span></button>
     </form>
     <button id="logoutBtn" class="auth-logout" type="button" hidden>Logout</button>

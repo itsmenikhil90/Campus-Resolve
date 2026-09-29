@@ -2,6 +2,9 @@ const Complaint = require("../models/complaint");
 const User = require("../models/user");
 const Notification = require("../models/notification");
 const { analyzeComplaint } = require("../services/aiService");
+const { saveUploads, deleteUploads, getAttachment } = require("../services/storageService");
+const path = require("node:path");
+const mongoose = require("mongoose");
 
 const respondError = (res, status, message) => res.status(status).json({ success: false, message });
 const setStatus = (complaint, status, user, note = "") => {
@@ -14,19 +17,68 @@ const notify = (c, type, title, message) => Notification.create({ recipient: c.s
 const detailed = query => query.populate("student", "name email studentId department year").populate("assignedTo approvedBy rejectedBy", "name email role").populate("comments.author", "name email role");
 
 exports.createComplaint = async (req, res) => {
+  let storedAttachments = [];
+  let complaintSaved = false;
   try {
     const { title, description, category = "Other", priority = "Medium", department = "Administration" } = req.body;
     if (!title?.trim() || !description?.trim()) return respondError(res, 400, "Title and description are required");
     if (title.trim().length > 160 || description.trim().length > 5000) return respondError(res, 400, "Complaint content is too long");
     let ai = {}; try { ai = await analyzeComplaint(title.trim(), description.trim()); } catch (e) { console.error("AI analysis unavailable:", e.message); }
-    const images = (req.files || []).map(file => `/uploads/${file.filename}`);
-    const c = new Complaint({ student: req.user._id, title: title.trim(), description: description.trim(), category, priority, department, images, status: "Pending Approval", approvalStatus: "pending", statusHistory: [{ status: "Pending Approval", changedBy: req.user._id, note: "Complaint submitted" }], aiAnalysis: { category: ai.category || category, priority: ai.priority || priority, summary: ai.summary || "AI analysis unavailable.", department: ai.department || department, sentiment: ai.sentiment || "Neutral", keywords: ai.keywords || [], similarComplaint: !!ai.similarComplaint, confidence: ai.confidence || 0 } });
-    await c.save(); await notify(c, "submitted", "Complaint submitted", `${c.ticketId} is awaiting approval.`);
+    storedAttachments = await saveUploads(req.files);
+    const c = new Complaint({ student: req.user._id, title: title.trim(), description: description.trim(), category, priority, department, images: storedAttachments, status: "Pending Approval", approvalStatus: "pending", statusHistory: [{ status: "Pending Approval", changedBy: req.user._id, note: "Complaint submitted" }], aiAnalysis: { category: ai.category || category, priority: ai.priority || priority, summary: ai.summary || "AI analysis unavailable.", department: ai.department || department, sentiment: ai.sentiment || "Neutral", keywords: ai.keywords || [], similarComplaint: !!ai.similarComplaint, confidence: ai.confidence || 0 } });
+    await c.save();
+    complaintSaved = true;
+    await notify(c, "submitted", "Complaint submitted", `${c.ticketId} is awaiting approval.`);
     res.status(201).json({ success: true, message: "Complaint submitted and awaiting approval.", data: c, complaint: c });
-  } catch (e) { console.error("Create complaint:", e); respondError(res, 500, "Server error while submitting complaint"); }
+  } catch (e) {
+    console.error("Create complaint:", e);
+    if (!complaintSaved && storedAttachments.length) {
+      try {
+        await deleteUploads(storedAttachments);
+      } catch (cleanupError) {
+        console.error("Could not clean up complaint attachments:", cleanupError);
+      }
+    }
+    respondError(res, 500, "Server error while submitting complaint");
+  }
 };
 exports.getMyComplaints = async (req, res) => { try { const complaints = await Complaint.find({ student: req.user._id }).populate("assignedTo", "name email").sort({ createdAt: -1 }); res.json({ success: true, count: complaints.length, data: complaints, complaints }); } catch (e) { respondError(res, 500, "Could not fetch complaints"); } };
 exports.getComplaintById = async (req, res) => { try { const filter = { _id: req.params.id }; if (req.user.role !== "admin") filter.student = req.user._id; const complaint = await detailed(Complaint.findOne(filter)); if (!complaint) return respondError(res, 404, "Complaint not found"); res.json({ success: true, data: complaint, complaint }); } catch (e) { respondError(res, 400, "Invalid complaint ID"); } };
+exports.getComplaintAttachment = async (req, res) => {
+  if (!mongoose.isValidObjectId(req.params.id)) return respondError(res, 404, "Complaint not found");
+  const index = Number(req.params.index);
+  if (!Number.isInteger(index) || index < 0) return respondError(res, 404, "Attachment not found");
+
+  try {
+    const filter = { _id: req.params.id };
+    if (req.user.role !== "admin") filter.student = req.user._id;
+    const complaint = await Complaint.findOne(filter).select("images");
+    const reference = complaint?.images[index];
+    if (!reference) return respondError(res, 404, "Attachment not found");
+
+    const attachment = await getAttachment(reference);
+    if (attachment.type === "stream") {
+      res.set("Content-Type", attachment.contentType);
+      res.set("Content-Disposition", "attachment");
+      if (attachment.contentLength) res.set("Content-Length", String(attachment.contentLength));
+      attachment.body.on("error", error => {
+        console.error("Stream complaint attachment:", error);
+        if (!res.headersSent) respondError(res, 502, "Could not load attachment");
+        else res.destroy(error);
+      });
+      return attachment.body.pipe(res);
+    }
+    return res.sendFile(path.resolve(attachment.filePath), error => {
+      if (error && !res.headersSent) respondError(res, 404, "Attachment not found");
+    });
+  } catch (error) {
+    if (error.$metadata?.httpStatusCode === 404 || error.name === "NoSuchKey") {
+      return respondError(res, 404, "Attachment not found");
+    }
+    console.error("Get complaint attachment:", error);
+    return respondError(res, 500, "Could not load attachment");
+  }
+};
 exports.getAllComplaints = async (req, res) => { try { const { status, priority, category, department, search, sort = "newest", pending } = req.query, filter = {}; if (status) filter.status = status; if (priority) filter.priority = priority; if (category) filter.category = category; if (department) filter.department = department; if (pending === "true") filter.approvalStatus = "pending"; if (search?.trim()) { const rx = new RegExp(search.trim(), "i"), people = await User.find({ $or: [{ name: rx }, { studentId: rx }, { email: rx }] }).select("_id"); filter.$or = [{ ticketId: rx }, { title: rx }, { description: rx }, { student: { $in: people.map(p => p._id) } }]; } const complaints = await detailed(Complaint.find(filter).sort(sort === "priority" ? { priority: -1, createdAt: -1 } : { createdAt: -1 })); res.json({ success: true, count: complaints.length, data: complaints, complaints }); } catch (e) { respondError(res, 500, "Could not fetch complaints"); } };
 exports.approveComplaint = async (req, res) => { try { const c = await Complaint.findById(req.params.id); if (!c) return respondError(res, 404, "Complaint not found"); if (c.approvalStatus !== "pending") return respondError(res, 400, "Only pending complaints can be approved"); c.approvalStatus = "approved"; c.approvedBy = req.user._id; c.approvedAt = new Date(); setStatus(c, "Under Review", req.user._id, "Approved by administrator"); await c.save(); await notify(c, "approved", "Complaint approved", `${c.ticketId} is now under review.`); res.json({ success: true, message: "Complaint approved", data: c, complaint: c }); } catch (e) { respondError(res, 500, "Could not approve complaint"); } };
 exports.rejectComplaint = async (req, res) => { try { const reason = req.body.rejectionReason?.trim(); if (!reason) return respondError(res, 400, "Rejection reason is required"); const c = await Complaint.findById(req.params.id); if (!c) return respondError(res, 404, "Complaint not found"); if (c.approvalStatus !== "pending") return respondError(res, 400, "Only pending complaints can be rejected"); c.approvalStatus = "rejected"; c.rejectionReason = reason; c.rejectedBy = req.user._id; c.rejectedAt = new Date(); setStatus(c, "Rejected", req.user._id, reason); await c.save(); await notify(c, "rejected", "Complaint rejected", `${c.ticketId} was rejected: ${reason}`); res.json({ success: true, message: "Complaint rejected", data: c, complaint: c }); } catch (e) { respondError(res, 500, "Could not reject complaint"); } };

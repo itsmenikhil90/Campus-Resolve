@@ -1,8 +1,14 @@
-let OpenAI = null;
-try { OpenAI = require("openai"); } catch (_) { console.log("AI package not installed; using safe analysis fallback."); }
+const OpenAI = require("openai");
 
 const client = process.env.OPENAI_API_KEY && OpenAI
     ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
+const model = process.env.OPENAI_MODEL || "gpt-4.1-mini";
+
+const checkAIService = async () => {
+    if (process.env.AI_ENABLED !== "true" || !client) return false;
+    await client.models.retrieve(model);
+    return true;
+};
 
 const analyzeComplaint = async (title, description) => {
 
@@ -25,7 +31,7 @@ const analyzeComplaint = async (title, description) => {
         console.log("🤖 AI Analysis Started...");
 
         const prompt = `
-Analyze this student complaint.
+Analyze this complaint.
 
 Title:
 ${title}
@@ -49,7 +55,7 @@ Do not include markdown.
 `;
 
         const response = await client.responses.create({
-            model: "gpt-4.1-mini",
+            model,
             input: prompt
         });
 
@@ -71,5 +77,6 @@ Do not include markdown.
 };
 
 module.exports = {
-    analyzeComplaint
+    analyzeComplaint,
+    checkAIService
 };

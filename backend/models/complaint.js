@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const complaintSchema = new mongoose.Schema(
     {
         // ========================================
-        // STUDENT
+        // REPORTER
         // ========================================
 
         student: {
@@ -216,9 +216,9 @@ complaintSchema.pre("validate", async function () {
     if (this.ticketId) return;
     const year = new Date().getFullYear();
     const count = await mongoose.model("Complaint").countDocuments({
-        ticketId: new RegExp(`^AIMT-${year}-`)
+        ticketId: new RegExp(`^AC-${year}-`)
     });
-    this.ticketId = `AIMT-${year}-${String(count + 1).padStart(4, "0")}`;
+    this.ticketId = `AC-${year}-${String(count + 1).padStart(4, "0")}`;
 });
 
 module.exports = mongoose.model("Complaint", complaintSchema);

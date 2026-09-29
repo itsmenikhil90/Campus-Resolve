@@ -1,12 +1,15 @@
 const multer = require("multer");
-const path = require("path");
-const fs = require("fs");
+const { allowedTypes } = require("../services/storageService");
 
-const uploadDir = path.join(__dirname, "..", "uploads");
-fs.mkdirSync(uploadDir, { recursive: true });
-const storage = multer.diskStorage({
-    destination: uploadDir,
-    filename: (req, file, cb) => cb(null, `${Date.now()}-${Math.round(Math.random() * 1e9)}${path.extname(file.originalname).toLowerCase()}`)
+module.exports = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 5 * 1024 * 1024, files: 3 },
+    fileFilter: (req, file, callback) => {
+        if (!allowedTypes.has(file.mimetype)) {
+            const error = new Error("Attachments must be JPEG, PNG, WebP, or PDF files.");
+            error.code = "UNSUPPORTED_FILE_TYPE";
+            return callback(error);
+        }
+        return callback(null, true);
+    }
 });
-const allowed = new Set(["image/jpeg", "image/png", "image/webp", "application/pdf"]);
-module.exports = multer({ storage, limits: { fileSize: 5 * 1024 * 1024, files: 3 }, fileFilter: (req, file, cb) => cb(null, allowed.has(file.mimetype)) });

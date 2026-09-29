@@ -4,12 +4,12 @@ All protected endpoints need `Authorization: Bearer <jwt>`.
 
 | Method | Endpoint | Purpose |
 |---|---|---|
-| POST | `/api/auth/register` | Register a student |
+| POST | `/api/auth/register` | Register a user |
 | POST | `/api/auth/login` | Login; response contains token and role |
 | POST | `/api/auth/forgot-password` | Request reset email |
-| PATCH | `/api/auth/reset-password/:token` | Reset password |
-| POST | `/api/complaints` | Student creates complaint (`title`, `description`, category, priority, department) |
-| GET | `/api/complaints/my` | Student's complaints |
+| POST | `/api/auth/reset-password/:token` | Reset password with the emailed OTP |
+| POST | `/api/complaints` | User creates complaint (`title`, `description`, category, priority, department) |
+| GET | `/api/complaints/my` | Current user's complaints |
 | GET | `/api/complaints/:id` | Owner or admin reads one complaint/history |
 | GET | `/api/complaints/admin/all` | Admin list; supports search and filters |
 | GET | `/api/complaints/admin/stats` | Admin analytics/statistics |

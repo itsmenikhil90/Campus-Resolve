@@ -4,6 +4,7 @@ const {
     createComplaint,
     getMyComplaints,
     getComplaintById,
+    getComplaintAttachment,
 
     getAllComplaints,
     getComplaintStats,
@@ -28,12 +29,12 @@ const upload = require("../middleware/uploadMiddleware");
 
 
 // ======================================================
-// STUDENT ROUTES
+// USER ROUTES
 // ======================================================
 
 
 // ========================================
-// STUDENT - CREATE COMPLAINT
+// USER - CREATE COMPLAINT
 // ========================================
 
 router.post(
@@ -45,7 +46,7 @@ router.post(
 
 
 // ========================================
-// STUDENT - GET OWN COMPLAINTS
+// USER - GET OWN COMPLAINTS
 // ========================================
 
 router.get(
@@ -148,6 +149,12 @@ router.patch(
     protect,
     authorize("admin"),
     assignComplaint
+);
+
+router.get(
+    "/:id/attachments/:index",
+    protect,
+    getComplaintAttachment
 );
 
 
