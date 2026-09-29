@@ -102,7 +102,10 @@ app.use("/api/chatbot", chatbotRoutes);
 ================================= */
 
 app.get("/", (req, res) => {
-    res.sendFile(path.join(__dirname, "..", "frontend", "index.html"));
+    res.json({
+        success: true,
+        message: "Campus Resolve Backend is running 🚀"
+    });
 });
 
 /* =================================
