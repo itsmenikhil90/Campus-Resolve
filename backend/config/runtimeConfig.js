@@ -32,28 +32,8 @@ const validateProductionConfig = (env = process.env) => {
 
     
 
-    if (env.STORAGE_DRIVER !== "s3") {
-        errors.push("STORAGE_DRIVER must be set to s3 for durable production attachment storage.");
-    }
-    if (!env.S3_BUCKET?.trim()) errors.push("S3_BUCKET must be configured.");
-    if (!env.AWS_REGION?.trim()) errors.push("AWS_REGION must be configured.");
-    if (env.S3_ENDPOINT) {
-        try {
-            if (new URL(env.S3_ENDPOINT).protocol !== "https:") errors.push("S3_ENDPOINT must use HTTPS in production.");
-        } catch {
-            errors.push("S3_ENDPOINT must be a valid HTTPS URL.");
-        }
-    }
-    if (env.S3_ENDPOINT && (!env.S3_ACCESS_KEY_ID || !env.S3_SECRET_ACCESS_KEY)) {
-        errors.push("S3_ACCESS_KEY_ID and S3_SECRET_ACCESS_KEY are required for custom S3 endpoints.");
-    }
-    if (Boolean(env.S3_ACCESS_KEY_ID) !== Boolean(env.S3_SECRET_ACCESS_KEY)) {
-        errors.push("Configure both S3_ACCESS_KEY_ID and S3_SECRET_ACCESS_KEY, or neither to use the host IAM role.");
-    }
-
-    if (env.AI_ENABLED !== "true" || !env.OPENAI_API_KEY?.trim()) {
-        errors.push("Set AI_ENABLED=true and configure OPENAI_API_KEY to enable complaint AI analysis.");
-    }
+   
+   
 
     return errors;
 };
