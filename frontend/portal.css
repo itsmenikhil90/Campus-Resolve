@@ -59,6 +59,11 @@ details { margin: 18px 0; padding: 22px; background: var(--paper); border: 1px s
 summary { cursor: pointer; color: var(--navy); font-weight: 800; }
 details ul { padding-left: 20px; list-style: disc; color: var(--muted); }
 details li { margin: 10px 0; }
+.response-entry { margin: 18px 0; padding: 18px; border: 1px solid var(--line); border-radius: 12px; background: #fff; }
+.response-entry h3 { margin-top: 0; }
+.response-item { margin: 12px 0; padding: 14px; border-left: 3px solid var(--gold); background: #f8fafc; }
+.response-item small { display: block; margin-top: 4px; color: var(--muted); }
+.response-item p { margin-bottom: 0; white-space: pre-wrap; }
 #notice { position: fixed; right: 22px; bottom: 22px; z-index: 20; max-width: 360px; padding: 14px 18px; color: #fff; background: var(--navy); border-left: 4px solid var(--gold); border-radius: 10px; box-shadow: 0 12px 35px rgba(0,0,0,.2); }
 @media (max-width: 760px) {
   header { flex-wrap: wrap; }

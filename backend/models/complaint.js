@@ -161,6 +161,24 @@ const complaintSchema = new mongoose.Schema(
             default: ""
         },
 
+        responses: [{
+            author: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "User",
+                required: true
+            },
+            text: {
+                type: String,
+                required: true,
+                trim: true,
+                maxlength: 3000
+            },
+            createdAt: {
+                type: Date,
+                default: Date.now
+            }
+        }],
+
         comments: [{
             author: {
                 type: mongoose.Schema.Types.ObjectId,

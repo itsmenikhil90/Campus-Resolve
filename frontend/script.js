@@ -2743,6 +2743,26 @@ function loadComplaints() {
      REGISTER FUNCTION
      =========================================================== */
 
+  async function readAuthResponse(response, fallbackMessage) {
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(
+        data.message ||
+        (response.status === 429
+          ? "Too many requests. Please wait a few minutes and try again."
+          : `${fallbackMessage} (HTTP ${response.status}).`)
+      );
+    }
+    if (!data.token || !data.user?.role || !data.user?.name) {
+      throw new Error("The server returned an incomplete account. Please try again.");
+    }
+    return data;
+  }
+
+  const authErrorMessage = (error, action) => error instanceof TypeError
+    ? `Could not connect to the server while ${action}. Please check your connection and try again.`
+    : error.message || `Could not ${action}. Please try again.`;
+
   async function registerUser() {
 
     const name =
@@ -2854,8 +2874,6 @@ function loadComplaints() {
         "Creating your account..."
       );
 
-      console.log("🚀 REGISTER FUNCTION CALLED");
-      console.log("🌐 API URL:", `${API_BASE}/auth/register`);
       const response =
         await fetch(
           `${API_BASE}/auth/register`,
@@ -2883,18 +2901,7 @@ function loadComplaints() {
         );
 
 
-      const data =
-        await response.json();
-
-
-      if (!response.ok) {
-
-        throw new Error(
-          data.message ||
-          "Registration failed."
-        );
-
-      }
+      const data = await readAuthResponse(response, "Registration failed");
 
       /* SAVE JWT + USER */
 
@@ -2944,13 +2951,13 @@ function loadComplaints() {
 
 
       showAuthMessage(
-        error.message,
+        authErrorMessage(error, "creating your account"),
         true
       );
 
 
       showToast(
-        error.message
+        authErrorMessage(error, "creating your account")
       );
 
 
@@ -3074,18 +3081,7 @@ function loadComplaints() {
         );
 
 
-      const data =
-        await response.json();
-
-
-      if (!response.ok) {
-
-        throw new Error(
-          data.message ||
-          "Login failed."
-        );
-
-      }
+      const data = await readAuthResponse(response, "Login failed");
 
       if (adminLoginMode && data.user.role !== "admin") {
         throw new Error("This account is not authorized for the administrator panel.");
@@ -3141,13 +3137,13 @@ function loadComplaints() {
 
 
       showAuthMessage(
-        error.message,
+        authErrorMessage(error, "signing in"),
         true
       );
 
 
       showToast(
-        error.message
+        authErrorMessage(error, "signing in")
       );
 
 

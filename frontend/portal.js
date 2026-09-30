@@ -2,7 +2,13 @@
   const API = window.CAMPUS_RESOLVE_API_BASE;
   const token = localStorage.getItem("campus_resolve_auth_token") || localStorage.getItem("aicomply_auth_token") || localStorage.getItem("aimt_auth_token");
   const storedUser = localStorage.getItem("campus_resolve_auth_user") || localStorage.getItem("aicomply_auth_user") || localStorage.getItem("aimt_auth_user");
-  const user = JSON.parse(storedUser || "null");
+  let user;
+  try {
+    user = JSON.parse(storedUser || "null");
+  } catch (error) {
+    console.error("Could not read the stored account:", error);
+    user = null;
+  }
   if (token) localStorage.setItem("campus_resolve_auth_token", token);
   if (storedUser) localStorage.setItem("campus_resolve_auth_user", storedUser);
   ["aicomply_auth_token", "aimt_auth_token"].forEach(key => localStorage.removeItem(key));
@@ -29,6 +35,20 @@
     setTimeout(() => { notice.hidden = true; }, 3000);
   };
 
+  const responsesLink = document.querySelector("#responsesLink");
+  if (!admin) {
+    responsesLink.hidden = false;
+    responsesLink.onclick = async () => {
+      try {
+        await student();
+        await notifications();
+        document.querySelector("#responses")?.scrollIntoView({ behavior: "smooth" });
+      } catch (error) {
+        toast(error.message);
+      }
+    };
+  }
+
   const showDashboardError = error => {
     console.error("Dashboard load error:", error);
     app.innerHTML = "";
@@ -48,8 +68,8 @@
         ...(options.headers || {})
       }
     });
-    const data = await response.json().catch(() => ({ message: "Network error" }));
-    if (response.status === 401 || response.status === 403) {
+    const data = await response.json().catch(() => ({ message: `Request failed (HTTP ${response.status})` }));
+    if (response.status === 401) {
       ["campus_resolve_auth_token", "aicomply_auth_token", "aimt_auth_token"].forEach(key => localStorage.removeItem(key));
       ["campus_resolve_auth_user", "aicomply_auth_user", "aimt_auth_user"].forEach(key => localStorage.removeItem(key));
       location.href = "index.html";
@@ -80,6 +100,17 @@
     `<li><b>${esc(comment.author?.name || "Administrator")}</b> · ${new Date(comment.createdAt).toLocaleString()}<br>${esc(comment.text)}</li>`
   ).join("") || "<li>No comments yet.</li>";
 
+  const responses = complaint => {
+    const items = complaint.responses?.length
+      ? complaint.responses
+      : complaint.adminResponse
+        ? [{ text: complaint.adminResponse, createdAt: complaint.updatedAt, author: null }]
+        : [];
+    return items.map(response =>
+      `<article class="response-item"><b>${esc(response.author?.name || "Administrator")}</b><small>${new Date(response.createdAt).toLocaleString()}</small><p>${esc(response.text)}</p></article>`
+    ).join("");
+  };
+
   const table = (items, isAdmin) => `
     <table>
       <thead><tr><th>Ticket</th><th>Title</th>${isAdmin ? "<th>User</th>" : ""}<th>Priority</th><th>Status</th><th>Updated</th><th>Actions</th></tr></thead>
@@ -104,7 +135,9 @@
       const data = await call("/notifications");
       document.querySelector("#unread").textContent = data.data.unreadCount ? `(${data.data.unreadCount})` : "";
       return data.data.notifications;
-    } catch {
+    } catch (error) {
+      console.error("Could not load notifications:", error);
+      toast(`Notifications unavailable: ${error.message}`);
       return [];
     }
   }
@@ -112,7 +145,7 @@
   document.querySelector("#notifications").onclick = async () => {
     const list = await notifications();
     app.insertAdjacentHTML("afterbegin", `<details open><summary>Notifications</summary>${list.map(item => `<p>${esc(item.title)} — ${esc(item.message)}</p>`).join("") || "No notifications"}</details>`);
-    call("/notifications/read-all", { method: "PATCH" });
+    call("/notifications/read-all", { method: "PATCH" }).catch(error => toast(error.message));
   };
 
   async function student() {
@@ -127,12 +160,16 @@
       resolved: list.filter(item => item.status === "Resolved").length,
       rejected: list.filter(item => item.status === "Rejected").length
     };
+    const responseItems = list.filter(item => item.responses?.length || item.adminResponse);
     app.innerHTML = `<h1>My dashboard</h1><section class="cards">${statusCards(counts)}</section>
       <section class="panel"><h2>Submit a complaint</h2><form id="new">
         <div class="row"><input name="title" required placeholder="Complaint title"><select name="category"><option>Other</option><option>Infrastructure</option><option>Academics</option><option>Hostel</option><option>IT/Technical</option></select><select name="priority"><option>Medium</option><option>Low</option><option>High</option><option>Critical</option></select></div>
         <input name="department" value="${esc(user.department)}" placeholder="Department"><p><textarea required name="description" placeholder="Describe the issue"></textarea></p>
         <label>Attachments (up to 3 JPEG, PNG, WebP, or PDF files, 5 MB each)<input name="attachments" type="file" accept=".jpg,.jpeg,.png,.webp,.pdf" multiple></label>
         <button>Submit complaint</button></form></section><h2>Your complaints</h2>${table(list, false)}`;
+    app.insertAdjacentHTML("beforeend", `<section class="panel" id="responses"><h2>Responses</h2>${responseItems.length
+      ? responseItems.map(item => `<article class="response-entry"><h3>${esc(item.ticketId || item._id)} · ${esc(item.title)}</h3>${responses(item)}</article>`).join("")
+      : "<p>Responses from administrators will appear here.</p>"}</section><section class="panel" id="complaintDetail" hidden></section>`);
     document.querySelector("#new").onsubmit = async event => {
       event.preventDefault();
       const form = new FormData(event.target);
@@ -153,18 +190,26 @@
     const [stats, all] = await Promise.all([call("/complaints/admin/stats"), call("/complaints/admin/all")]);
     app.innerHTML = `<h1>Admin dashboard</h1><section class="cards">${statusCards(stats.data.stats)}</section>
       <div class="row"><input id="search" placeholder="Search ticket, title, user, email"><button id="pending">Pending approvals</button><button id="reload">Refresh</button></div>
-      <h2>Complaint management</h2>${table(all.data, true)}`;
+      <h2>Complaint management</h2>${table(all.data, true)}<section class="panel" id="complaintDetail" hidden></section>`;
     document.querySelector("#search").onchange = async event => {
-      const data = await call(`/complaints/admin/all?search=${encodeURIComponent(event.target.value)}`);
-      app.querySelector("table").outerHTML = table(data.data, true);
-      bindAdmin();
+      try {
+        const data = await call(`/complaints/admin/all?search=${encodeURIComponent(event.target.value)}`);
+        app.querySelector("table").outerHTML = table(data.data, true);
+        bindAdmin();
+      } catch (error) {
+        toast(error.message);
+      }
     };
     document.querySelector("#pending").onclick = async () => {
-      const data = await call("/complaints/admin/all?pending=true");
-      app.querySelector("table").outerHTML = table(data.data, true);
-      bindAdmin();
+      try {
+        const data = await call("/complaints/admin/all?pending=true");
+        app.querySelector("table").outerHTML = table(data.data, true);
+        bindAdmin();
+      } catch (error) {
+        toast(error.message);
+      }
     };
-    document.querySelector("#reload").onclick = adminPanel;
+    document.querySelector("#reload").onclick = () => adminPanel().catch(showDashboardError);
     bindAdmin();
   }
 
@@ -192,17 +237,20 @@
   async function detail(id, isAdmin) {
     try {
       const complaint = (await call(`/complaints/${id}`)).data;
+      const detailPanel = document.querySelector("#complaintDetail");
+      if (!detailPanel) return;
       const attachments = (complaint.images || []).map((_, index) =>
         `<button type="button" data-download="${index}" data-complaint="${esc(id)}">Download attachment ${index + 1}</button>`
       ).join(" ");
-      app.insertAdjacentHTML("afterbegin", `<details open><summary>${esc(complaint.ticketId)} — ${esc(complaint.title)}</summary>
+      detailPanel.hidden = false;
+      detailPanel.innerHTML = `<details open><summary>${esc(complaint.ticketId)} — ${esc(complaint.title)}</summary>
         <p>${esc(complaint.description)}</p><p><b>Status:</b> ${esc(complaint.status)} · <b>AI summary:</b> ${esc(complaint.aiAnalysis?.summary)}</p>
         ${attachments ? `<p><b>Attachments:</b> ${attachments}</p>` : ""}
-        <p><b>Admin response:</b> ${esc(complaint.adminResponse || "None")}</p><h3>Comments</h3><ul>${comments(complaint)}</ul>
+        <h3>Responses</h3>${responses(complaint) || "<p>No response has been sent yet.</p>"}<h3>Comments</h3><ul>${comments(complaint)}</ul>
         ${isAdmin ? `<textarea id="comment-${id}" placeholder="Add an internal/public comment"></textarea><button data-comment="${id}">Add comment</button>
           <textarea id="response-${id}" placeholder="Send a response to the user"></textarea><button data-response="${id}">Send response</button>
           ${["Under Review", "Assigned", "In Progress"].includes(complaint.status) ? `<button data-advance="${id}">Advance workflow</button>` : ""}` : ""}
-        <p><b>History:</b> ${(complaint.statusHistory || []).map(item => `${esc(item.status)} — ${esc(item.note)} (${new Date(item.changedAt).toLocaleString()})`).join(" → ")}</p></details>`);
+        <p><b>History:</b> ${(complaint.statusHistory || []).map(item => `${esc(item.status)} — ${esc(item.note)} (${new Date(item.changedAt).toLocaleString()})`).join(" → ")}</p></details>`;
       document.querySelectorAll(`[data-complaint="${id}"][data-download]`).forEach(button => {
         button.addEventListener("click", async () => {
           try {
@@ -222,24 +270,39 @@
         });
       });
       document.querySelector(`[data-comment="${id}"]`)?.addEventListener("click", async () => {
-        const text = document.querySelector(`#comment-${id}`).value.trim();
-        if (!text) return;
-        await call(`/complaints/admin/${id}/comments`, { method: "POST", body: JSON.stringify({ text }) });
-        toast("Comment added");
-        await adminPanel();
+        try {
+          const text = document.querySelector(`#comment-${id}`).value.trim();
+          if (!text) return;
+          await call(`/complaints/admin/${id}/comments`, { method: "POST", body: JSON.stringify({ text }) });
+          toast("Comment added");
+          await adminPanel();
+          await detail(id, true);
+        } catch (error) {
+          toast(error.message);
+        }
       });
       document.querySelector(`[data-response="${id}"]`)?.addEventListener("click", async () => {
-        const adminResponse = document.querySelector(`#response-${id}`).value.trim();
-        if (!adminResponse) return;
-        await call(`/complaints/admin/${id}/response`, { method: "PATCH", body: JSON.stringify({ adminResponse }) });
-        toast("Response sent");
-        await adminPanel();
+        try {
+          const adminResponse = document.querySelector(`#response-${id}`).value.trim();
+          if (!adminResponse) return;
+          await call(`/complaints/admin/${id}/response`, { method: "PATCH", body: JSON.stringify({ adminResponse }) });
+          toast("Response sent to the user");
+          await adminPanel();
+          await detail(id, true);
+        } catch (error) {
+          toast(error.message);
+        }
       });
       document.querySelector(`[data-advance="${id}"]`)?.addEventListener("click", async () => {
-        const next = { "Under Review": "Assigned", Assigned: "In Progress", "In Progress": "Resolved" }[complaint.status];
-        await call(`/complaints/admin/${id}/status`, { method: "PATCH", body: JSON.stringify({ status: next }) });
-        toast(`Moved to ${next}`);
-        await adminPanel();
+        try {
+          const next = { "Under Review": "Assigned", Assigned: "In Progress", "In Progress": "Resolved" }[complaint.status];
+          await call(`/complaints/admin/${id}/status`, { method: "PATCH", body: JSON.stringify({ status: next }) });
+          toast(`Moved to ${next}`);
+          await adminPanel();
+          await detail(id, true);
+        } catch (error) {
+          toast(error.message);
+        }
       });
     } catch (error) {
       toast(error.message);
@@ -249,9 +312,6 @@
   notifications();
   if (admin) {
     adminPanel().catch(showDashboardError);
-    setInterval(() => {
-      if (!document.hidden) adminPanel().catch(showDashboardError);
-    }, 15000);
   } else {
     student().catch(showDashboardError);
   }

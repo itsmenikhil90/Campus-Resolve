@@ -32,15 +32,21 @@ const register = async (req, res) => {
             studentId,
             department,
             year
-        } = req.body;
+        } = req.body || {};
+        const normalizedName = typeof name === "string" ? name.trim() : "";
+        const normalizedEmail = typeof email === "string" ? email.trim().toLowerCase() : "";
+        const normalizedStudentId = typeof studentId === "string" ? studentId.trim() : "";
+        const normalizedDepartment = typeof department === "string" ? department.trim() : "";
+        const normalizedYear = year == null ? "" : String(year).trim();
 
         if (
-            !name ||
-            !email ||
+            !normalizedName ||
+            !normalizedEmail ||
+            typeof password !== "string" ||
             !password ||
-            !studentId ||
-            !department ||
-            !year
+            !normalizedStudentId ||
+            !normalizedDepartment ||
+            !normalizedYear
         ) {
             return res.status(400).json({
                 success: false,
@@ -48,7 +54,7 @@ const register = async (req, res) => {
             });
         }
 
-        const existingEmail = await User.findOne({ email });
+        const existingEmail = await User.findOne({ email: normalizedEmail });
 
         if (existingEmail) {
             return res.status(400).json({
@@ -57,7 +63,7 @@ const register = async (req, res) => {
             });
         }
 
-        const existingStudent = await User.findOne({ studentId });
+        const existingStudent = await User.findOne({ studentId: normalizedStudentId });
 
         if (existingStudent) {
             return res.status(400).json({
@@ -69,12 +75,12 @@ const register = async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, 12);
 
         const user = await User.create({
-            name,
-            email,
+            name: normalizedName,
+            email: normalizedEmail,
             password: hashedPassword,
-            studentId,
-            department,
-            year,
+            studentId: normalizedStudentId,
+            department: normalizedDepartment,
+            year: normalizedYear,
             role: "student"
         });
 
@@ -99,6 +105,16 @@ const register = async (req, res) => {
 
         console.error("Register Error:", error);
 
+        if (error.code === 11000) {
+            const duplicateField = Object.keys(error.keyPattern || {})[0];
+            return res.status(409).json({
+                success: false,
+                message: duplicateField === "studentId"
+                    ? "User ID already registered"
+                    : "Email already registered"
+            });
+        }
+
         res.status(500).json({
             success: false,
             message: "Server error during registration"
@@ -118,11 +134,11 @@ const login = async (req, res) => {
             email,
             studentId,
             password
-        } = req.body;
+        } = req.body || {};
 
-        const identifier = (email || studentId || "").trim();
+        const identifier = String(email || studentId || "").trim();
 
-        if (!identifier || !password) {
+        if (!identifier || typeof password !== "string" || !password) {
             return res.status(400).json({
                 success: false,
                 message: "Email or user ID and password are required"

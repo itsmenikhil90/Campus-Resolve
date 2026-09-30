@@ -20,7 +20,7 @@ To create an administrator, add `ADMIN_EMAIL` and `ADMIN_PASSWORD` to `backend/.
 
 The frontend uses one API base for authentication, the dashboard, and chat. It defaults to the deployed backend URL; if hosting the frontend with a different backend, set `window.CAMPUS_RESOLVE_API_BASE` (the backend origin or its `/api` URL) before `api-config.js` loads, and add the frontend origin to `FRONTEND_URL`. When the frontend and backend are served together, use the same public origin as the configured API base.
 
-After login, users can submit and track their own complaints. Administrators receive dashboard, search, approval/rejection, response, and workflow controls.
+After login, users can submit and track their own complaints and open the Responses section to see administrator replies. Administrators receive dashboard, search, approval/rejection, response, and workflow controls.
 
 The Campus Resolve Assistant answers the site FAQs and can look up a signed-in user's own complaint statuses and details. When AI is enabled, chat messages, recent conversation turns, and (when complaint lookup is relevant) authorized complaint details are sent to the configured OpenAI service; disclose this to users and configure the provider accordingly. Without AI configuration, supported FAQs and complaint lookups use local responses. Chat is rate-limited and cannot change complaint records.
 
