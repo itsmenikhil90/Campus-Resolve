@@ -9,8 +9,8 @@ All protected endpoints need `Authorization: Bearer <jwt>`.
 | POST | `/api/auth/forgot-password` | Request reset email |
 | POST | `/api/auth/reset-password/:token` | Reset password with the emailed OTP |
 | POST | `/api/complaints` | User creates complaint (`title`, `description`, category, priority, department) |
-| GET | `/api/complaints/my` | Current user's complaints, including administrator responses |
-| GET | `/api/complaints/:id` | Owner or admin reads one complaint/history and response history |
+| GET | `/api/complaints/my` | Current user's complaints, including administrator responses and notes |
+| GET | `/api/complaints/:id` | Owner or admin reads one complaint/history, responses, and notes |
 | GET | `/api/complaints/admin/all` | Admin list; supports search and filters |
 | GET | `/api/complaints/admin/stats` | Admin analytics/statistics |
 | PATCH | `/api/complaints/admin/:id/approve` | Admin approves pending complaint |
@@ -18,6 +18,7 @@ All protected endpoints need `Authorization: Bearer <jwt>`.
 | PATCH | `/api/complaints/admin/:id/assign` | Admin assigns (`assignedTo`) |
 | PATCH | `/api/complaints/admin/:id/status` | Valid forward transition (`status`) |
 | PATCH | `/api/complaints/admin/:id/response` | Admin sends a response to the complaint owner; response is added to the user's Responses section |
+| POST | `/api/complaints/admin/:id/comments` | Admin adds a user-visible note to the complaint's Administrator updates section |
 | GET | `/api/notifications` | Current user's notifications |
 | PATCH | `/api/notifications/:id/read` | Mark one notification read |
 | PATCH | `/api/notifications/read-all` | Mark all read |

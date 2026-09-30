@@ -96,18 +96,19 @@
     Rejected: stats.rejected
   }).map(([label, value]) => `<div class="card"><small>${label}</small><b>${value}</b></div>`).join("");
 
-  const comments = complaint => (complaint.comments || []).map(comment =>
-    `<li><b>${esc(comment.author?.name || "Administrator")}</b> · ${new Date(comment.createdAt).toLocaleString()}<br>${esc(comment.text)}</li>`
-  ).join("") || "<li>No comments yet.</li>";
-
-  const responses = complaint => {
-    const items = complaint.responses?.length
-      ? complaint.responses
+  const updates = complaint => {
+    const formalResponses = complaint.responses?.length
+      ? complaint.responses.map(response => ({ ...response, kind: "Response" }))
       : complaint.adminResponse
-        ? [{ text: complaint.adminResponse, createdAt: complaint.updatedAt, author: null }]
+        ? [{ text: complaint.adminResponse, createdAt: complaint.updatedAt, author: null, kind: "Response" }]
         : [];
-    return items.map(response =>
-      `<article class="response-item"><b>${esc(response.author?.name || "Administrator")}</b><small>${new Date(response.createdAt).toLocaleString()}</small><p>${esc(response.text)}</p></article>`
+    const items = [
+      ...formalResponses,
+      ...(complaint.comments || []).map(comment => ({ ...comment, kind: "Admin note" }))
+    ].sort((left, right) => new Date(left.createdAt) - new Date(right.createdAt));
+
+    return items.map(item =>
+      `<article class="response-item"><b>${esc(item.kind)} · ${esc(item.author?.name || "Administrator")}</b><small>${new Date(item.createdAt).toLocaleString()}</small><p>${esc(item.text)}</p></article>`
     ).join("");
   };
 
@@ -160,16 +161,16 @@
       resolved: list.filter(item => item.status === "Resolved").length,
       rejected: list.filter(item => item.status === "Rejected").length
     };
-    const responseItems = list.filter(item => item.responses?.length || item.adminResponse);
+    const responseItems = list.filter(item => item.responses?.length || item.adminResponse || item.comments?.length);
     app.innerHTML = `<h1>My dashboard</h1><section class="cards">${statusCards(counts)}</section>
       <section class="panel"><h2>Submit a complaint</h2><form id="new">
         <div class="row"><input name="title" required placeholder="Complaint title"><select name="category"><option>Other</option><option>Infrastructure</option><option>Academics</option><option>Hostel</option><option>IT/Technical</option></select><select name="priority"><option>Medium</option><option>Low</option><option>High</option><option>Critical</option></select></div>
         <input name="department" value="${esc(user.department)}" placeholder="Department"><p><textarea required name="description" placeholder="Describe the issue"></textarea></p>
         <label>Attachments (up to 3 JPEG, PNG, WebP, or PDF files, 5 MB each)<input name="attachments" type="file" accept=".jpg,.jpeg,.png,.webp,.pdf" multiple></label>
         <button>Submit complaint</button></form></section><h2>Your complaints</h2>${table(list, false)}`;
-    app.insertAdjacentHTML("beforeend", `<section class="panel" id="responses"><h2>Responses</h2>${responseItems.length
-      ? responseItems.map(item => `<article class="response-entry"><h3>${esc(item.ticketId || item._id)} · ${esc(item.title)}</h3>${responses(item)}</article>`).join("")
-      : "<p>Responses from administrators will appear here.</p>"}</section><section class="panel" id="complaintDetail" hidden></section>`);
+    app.insertAdjacentHTML("beforeend", `<section class="panel" id="responses"><h2>Administrator updates</h2>${responseItems.length
+      ? responseItems.map(item => `<article class="response-entry"><h3>${esc(item.ticketId || item._id)} · ${esc(item.title)}</h3>${updates(item)}</article>`).join("")
+      : "<p>Responses and notes from administrators will appear here.</p>"}</section><section class="panel" id="complaintDetail" hidden></section>`);
     document.querySelector("#new").onsubmit = async event => {
       event.preventDefault();
       const form = new FormData(event.target);
@@ -246,8 +247,8 @@
       detailPanel.innerHTML = `<details open><summary>${esc(complaint.ticketId)} — ${esc(complaint.title)}</summary>
         <p>${esc(complaint.description)}</p><p><b>Status:</b> ${esc(complaint.status)} · <b>AI summary:</b> ${esc(complaint.aiAnalysis?.summary)}</p>
         ${attachments ? `<p><b>Attachments:</b> ${attachments}</p>` : ""}
-        <h3>Responses</h3>${responses(complaint) || "<p>No response has been sent yet.</p>"}<h3>Comments</h3><ul>${comments(complaint)}</ul>
-        ${isAdmin ? `<textarea id="comment-${id}" placeholder="Add an internal/public comment"></textarea><button data-comment="${id}">Add comment</button>
+        <h3>Administrator updates</h3>${updates(complaint) || "<p>No administrator updates yet.</p>"}
+        ${isAdmin ? `<textarea id="comment-${id}" placeholder="Add a note visible to the user"></textarea><button data-comment="${id}">Add user-visible note</button>
           <textarea id="response-${id}" placeholder="Send a response to the user"></textarea><button data-response="${id}">Send response</button>
           ${["Under Review", "Assigned", "In Progress"].includes(complaint.status) ? `<button data-advance="${id}">Advance workflow</button>` : ""}` : ""}
         <p><b>History:</b> ${(complaint.statusHistory || []).map(item => `${esc(item.status)} — ${esc(item.note)} (${new Date(item.changedAt).toLocaleString()})`).join(" → ")}</p></details>`;
