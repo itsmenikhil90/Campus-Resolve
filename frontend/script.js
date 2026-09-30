@@ -2326,7 +2326,9 @@ function loadComplaints() {
     document.getElementById(
       "authBtn"
     );
+
   const adminLoginBtn = document.getElementById("adminLoginBtn");
+  const showDashboardBtn = document.getElementById("showDashboardBtn");
   let adminLoginMode = false;
 
   const authModal =
@@ -2478,35 +2480,23 @@ function loadComplaints() {
     const user =
       getAuthUser();
 
+    const authenticated = Boolean(token && user);
 
     if (authBtn) {
-
-      if (
-        token &&
-        user
-      ) {
-
-        authBtn.textContent =
-          `Hi, ${user.name}`;
-
-      } else {
-
-        authBtn.textContent =
-          "User Login";
-
-      }
-
+      authBtn.hidden = authenticated;
+      authBtn.textContent = "User Login";
     }
 
+    if (adminLoginBtn) {
+      adminLoginBtn.hidden = authenticated;
+    }
+
+    if (showDashboardBtn) {
+      showDashboardBtn.hidden = !authenticated;
+    }
 
     if (logoutBtn) {
-
-      logoutBtn.hidden =
-        !(
-          token &&
-          user
-        );
-
+      logoutBtn.hidden = !authenticated;
     }
 
   }
@@ -2592,6 +2582,12 @@ function loadComplaints() {
       authTitle.textContent = "Administrator Login";
       authSubtitle.textContent = "Sign in with your administrator account.";
       showAuthMessage("");
+    });
+  }
+
+  if (showDashboardBtn) {
+    showDashboardBtn.addEventListener("click", () => {
+      window.location.href = "portal.html";
     });
   }
 
