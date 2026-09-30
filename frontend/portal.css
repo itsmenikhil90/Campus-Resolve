@@ -64,6 +64,15 @@ details li { margin: 10px 0; }
 .response-item { margin: 12px 0; padding: 14px; border-left: 3px solid var(--gold); background: #f8fafc; }
 .response-item small { display: block; margin-top: 4px; color: var(--muted); }
 .response-item p { margin-bottom: 0; white-space: pre-wrap; }
+.notification-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.notification-heading h2 { margin-top: 0; }
+.notification-item { margin: 12px 0; padding: 16px; border: 1px solid var(--line); border-radius: 12px; background: #fff; }
+.notification-item.unread { border-left: 4px solid var(--gold); background: #f4fbfa; }
+.notification-item > div { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; }
+.notification-item small { color: var(--muted); }
+.notification-item p { margin: 8px 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.notification-item button { margin-top: 10px; padding: 7px 10px; font-size: 12px; }
+.notification-item button:disabled { cursor: default; opacity: .65; }
 #notice { position: fixed; right: 22px; bottom: 22px; z-index: 20; max-width: 360px; padding: 14px 18px; color: #fff; background: var(--navy); border-left: 4px solid var(--gold); border-radius: 10px; box-shadow: 0 12px 35px rgba(0,0,0,.2); }
 @media (max-width: 760px) {
   header { flex-wrap: wrap; }
@@ -71,4 +80,5 @@ details li { margin: 10px 0; }
   main { padding-top: 28px; }
   table { display: block; overflow-x: auto; white-space: nowrap; }
   td, th { padding: 12px 10px; }
+  .notification-heading, .notification-item > div { align-items: flex-start; flex-direction: column; }
 }

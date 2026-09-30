@@ -131,22 +131,43 @@
         </tr>`).join("") || `<tr><td colspan="${isAdmin ? 7 : 6}">No complaints yet.</td></tr>`}</tbody>
     </table>`;
 
+  let notificationIds = null;
+
+  const renderNotifications = (items, unreadCount) => {
+    document.querySelector("#unread").textContent = unreadCount ? `(${unreadCount})` : "";
+    const sectionUnread = document.querySelector("#notificationUnread");
+    if (sectionUnread) sectionUnread.textContent = unreadCount ? `(${unreadCount} unread)` : "";
+    const list = document.querySelector("#notificationList");
+    if (!list) return;
+    list.innerHTML = items.length
+      ? items.map(item => `
+        <article class="notification-item${item.isRead ? "" : " unread"}">
+          <div><b>${esc(item.title)}</b><small>${new Date(item.createdAt).toLocaleString()}</small></div>
+          <p>${esc(item.message)}</p>
+          ${item.complaint ? `<small>${esc(item.complaint.ticketId || "")} · ${esc(item.complaint.title || "")}</small>` : ""}
+          <button type="button" data-mark-notification="${esc(item._id)}" ${item.isRead ? "disabled" : ""}>${item.isRead ? "Read" : "Mark as read"}</button>
+        </article>`).join("")
+      : "<p>No notifications yet. Complaint decisions and administrator updates will appear here.</p>";
+  };
+
   async function notifications() {
-    try {
-      const data = await call("/notifications");
-      document.querySelector("#unread").textContent = data.data.unreadCount ? `(${data.data.unreadCount})` : "";
-      return data.data.notifications;
-    } catch (error) {
-      console.error("Could not load notifications:", error);
-      toast(`Notifications unavailable: ${error.message}`);
-      return [];
+    const data = await call("/notifications");
+    const items = data.data.notifications;
+    const currentIds = new Set(items.map(item => item._id));
+    if (notificationIds) {
+      const freshItems = items.filter(item => !notificationIds.has(item._id));
+      if (freshItems.length) {
+        toast(`${freshItems[0].title}: ${freshItems[0].message}`);
+      }
     }
+    notificationIds = currentIds;
+    renderNotifications(items, data.data.unreadCount);
+    return items;
   }
 
-  document.querySelector("#notifications").onclick = async () => {
-    const list = await notifications();
-    app.insertAdjacentHTML("afterbegin", `<details open><summary>Notifications</summary>${list.map(item => `<p>${esc(item.title)} — ${esc(item.message)}</p>`).join("") || "No notifications"}</details>`);
-    call("/notifications/read-all", { method: "PATCH" }).catch(error => toast(error.message));
+  document.querySelector("#notifications").onclick = () => {
+    document.querySelector("#notificationCenter")?.scrollIntoView({ behavior: "smooth" });
+    notifications().catch(error => toast(`Could not refresh notifications: ${error.message}`));
   };
 
   async function student() {
@@ -163,6 +184,10 @@
     };
     const responseItems = list.filter(item => item.responses?.length || item.adminResponse || item.comments?.length);
     app.innerHTML = `<h1>My dashboard</h1><section class="cards">${statusCards(counts)}</section>
+      <section class="panel" id="notificationCenter" aria-live="polite">
+        <div class="notification-heading"><h2>Notifications <span id="notificationUnread"></span></h2><button type="button" id="markAllNotificationsRead">Mark all as read</button></div>
+        <div id="notificationList"><p>Loading notifications…</p></div>
+      </section>
       <section class="panel"><h2>Submit a complaint</h2><form id="new">
         <div class="row"><input name="title" required placeholder="Complaint title"><select name="category"><option>Other</option><option>Infrastructure</option><option>Academics</option><option>Hostel</option><option>IT/Technical</option></select><select name="priority"><option>Medium</option><option>Low</option><option>High</option><option>Critical</option></select></div>
         <input name="department" value="${esc(user.department)}" placeholder="Department"><p><textarea required name="description" placeholder="Describe the issue"></textarea></p>
@@ -171,6 +196,24 @@
     app.insertAdjacentHTML("beforeend", `<section class="panel" id="responses"><h2>Administrator updates</h2>${responseItems.length
       ? responseItems.map(item => `<article class="response-entry"><h3>${esc(item.ticketId || item._id)} · ${esc(item.title)}</h3>${updates(item)}</article>`).join("")
       : "<p>Responses and notes from administrators will appear here.</p>"}</section><section class="panel" id="complaintDetail" hidden></section>`);
+    document.querySelector("#markAllNotificationsRead").onclick = async () => {
+      try {
+        await call("/notifications/read-all", { method: "PATCH" });
+        await notifications();
+      } catch (error) {
+        toast(`Could not mark notifications as read: ${error.message}`);
+      }
+    };
+    document.querySelector("#notificationList").addEventListener("click", async event => {
+      const button = event.target.closest("[data-mark-notification]");
+      if (!button || button.disabled) return;
+      try {
+        await call(`/notifications/${encodeURIComponent(button.dataset.markNotification)}/read`, { method: "PATCH" });
+        await notifications();
+      } catch (error) {
+        toast(`Could not update notification: ${error.message}`);
+      }
+    });
     document.querySelector("#new").onsubmit = async event => {
       event.preventDefault();
       const form = new FormData(event.target);
@@ -310,10 +353,16 @@
     }
   }
 
-  notifications();
   if (admin) {
     adminPanel().catch(showDashboardError);
   } else {
-    student().catch(showDashboardError);
+    student()
+      .then(() => notifications())
+      .catch(showDashboardError);
+    setInterval(() => {
+      if (!document.hidden) {
+        notifications().catch(error => console.error("Could not refresh notifications:", error));
+      }
+    }, 10000);
   }
 })();
