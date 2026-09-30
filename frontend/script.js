@@ -5,7 +5,7 @@
      BASIC SETTINGS
      =========================================================== */
 
- const API_BASE = "https://campus-resolve-kl3e.onrender.com/api";
+  const API_BASE = window.CAMPUS_RESOLVE_API_BASE;
 
   const prefersReducedMotion =
     window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -3349,7 +3349,7 @@ function loadComplaints() {
 
 async function testBackendConnection() {
     try {
-        const response = await fetch(`${window.CAMPUS_RESOLVE_API_BASE || window.AI_COMPLY_API_BASE || "/api"}/health`);
+        const response = await fetch(`${API_BASE}/health`);
 
         const data = await response.json();
 

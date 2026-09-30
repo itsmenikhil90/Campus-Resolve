@@ -18,7 +18,7 @@ Campus Resolve is a standalone, AI-assisted complaint management platform. Users
 
 To create an administrator, add `ADMIN_EMAIL` and `ADMIN_PASSWORD` to `backend/.env`, then run `node createAdmin.js` from the `backend` directory. Forgot-password emails require `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, and `EMAIL_FROM`.
 
-The backend serves the frontend and API from the same origin, which is allowed automatically. If hosting the frontend separately, set `window.CAMPUS_RESOLVE_API_BASE` before loading the frontend scripts and add the frontend origin to `FRONTEND_URL`.
+The frontend uses one API base for authentication, the dashboard, and chat. It defaults to the deployed backend URL; if hosting the frontend with a different backend, set `window.CAMPUS_RESOLVE_API_BASE` (the backend origin or its `/api` URL) before `api-config.js` loads, and add the frontend origin to `FRONTEND_URL`. When the frontend and backend are served together, use the same public origin as the configured API base.
 
 After login, users can submit and track their own complaints. Administrators receive dashboard, search, approval/rejection, response, and workflow controls.
 

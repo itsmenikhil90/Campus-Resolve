@@ -1,5 +1,5 @@
 (() => {
-  const API = window.CAMPUS_RESOLVE_API_BASE || window.AI_COMPLY_API_BASE || "/api";
+  const API = window.CAMPUS_RESOLVE_API_BASE;
   const token = localStorage.getItem("campus_resolve_auth_token") || localStorage.getItem("aicomply_auth_token") || localStorage.getItem("aimt_auth_token");
   const storedUser = localStorage.getItem("campus_resolve_auth_user") || localStorage.getItem("aicomply_auth_user") || localStorage.getItem("aimt_auth_user");
   const user = JSON.parse(storedUser || "null");
@@ -27,6 +27,16 @@
     notice.textContent = message;
     notice.hidden = false;
     setTimeout(() => { notice.hidden = true; }, 3000);
+  };
+
+  const showDashboardError = error => {
+    console.error("Dashboard load error:", error);
+    app.innerHTML = "";
+    const heading = document.createElement("h1");
+    heading.textContent = "Dashboard unavailable";
+    const message = document.createElement("p");
+    message.textContent = error.message || "Could not load your dashboard. Please try again.";
+    app.append(heading, message);
   };
 
   const call = async (path, options = {}) => {
@@ -238,9 +248,11 @@
 
   notifications();
   if (admin) {
-    adminPanel();
-    setInterval(() => { if (!document.hidden) adminPanel(); }, 15000);
+    adminPanel().catch(showDashboardError);
+    setInterval(() => {
+      if (!document.hidden) adminPanel().catch(showDashboardError);
+    }, 15000);
   } else {
-    student();
+    student().catch(showDashboardError);
   }
 })();

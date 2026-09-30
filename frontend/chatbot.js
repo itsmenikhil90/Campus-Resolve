@@ -1,5 +1,5 @@
 (() => {
-  const API = window.CAMPUS_RESOLVE_API_BASE || window.AI_COMPLY_API_BASE || "/api";
+  const API = window.CAMPUS_RESOLVE_API_BASE;
   const launcher = document.querySelector("#chatLauncher");
   const panel = document.querySelector("#chatWindow");
   const close = document.querySelector("#chatClose");
