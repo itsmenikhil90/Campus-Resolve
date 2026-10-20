@@ -12,22 +12,6 @@
 
 
   /* ===========================================================
-     PRELOADER
-     =========================================================== */
-
-  const preloader = document.getElementById("preloader");
-
-  window.addEventListener("load", () => {
-    setTimeout(() => {
-      if (preloader) {
-        preloader.classList.add("is-done");
-      }
-
-    }, 500);
-  });
-
-
-  /* ===========================================================
      LOCAL STORAGE
      =========================================================== */
 

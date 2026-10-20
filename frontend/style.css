@@ -50,7 +50,7 @@ input,select,textarea{ font-family:inherit; font-size:1rem; }
  
 @media (prefers-reduced-motion: reduce){
   *{ animation-duration:0.001ms !important; transition-duration:0.001ms !important; scroll-behavior:auto !important; }
-  .particle-canvas, .hero-rays, .preloader{ display:none !important; }
+  .particle-canvas, .hero-rays{ display:none !important; }
 }
  
 a:focus-visible, button:focus-visible, input:focus-visible,
@@ -59,26 +59,6 @@ select:focus-visible, textarea:focus-visible{
   outline-offset:2px;
 }
 .opt{ color:var(--ink-soft); font-weight:400; font-size:0.85em; }
- 
-/* =========================================================
-   Preloader
-   ========================================================= */
-.preloader{
-  position:fixed; inset:0; z-index:999;
-  background:var(--navy-deep);
-  display:flex; align-items:center; justify-content:center;
-  transition:opacity 0.6s ease, visibility 0.6s ease;
-}
-.preloader.is-done{ opacity:0; visibility:hidden; }
-.preloader-brand{
-  color:var(--cream-soft); font-family:var(--font-display); font-size:1.6rem;
-  font-weight:700; letter-spacing:0.08em;
-  animation:brandFadeIn 0.8s ease both;
-}
-@keyframes brandFadeIn{
-  from{ transform:translateY(8px); opacity:0; }
-  to{ transform:translateY(0); opacity:1; }
-}
  
 /* =========================================================
    Ambient canvas + cursor glow
