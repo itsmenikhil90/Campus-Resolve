@@ -132,6 +132,7 @@
     </table>`;
 
   let notificationIds = null;
+  let latestNotifications = null;
 
   const renderNotifications = (items, unreadCount) => {
     document.querySelector("#unread").textContent = unreadCount ? `(${unreadCount})` : "";
@@ -161,6 +162,7 @@
       }
     }
     notificationIds = currentIds;
+    latestNotifications = data.data;
     renderNotifications(items, data.data.unreadCount);
     return items;
   }
@@ -196,6 +198,9 @@
     app.insertAdjacentHTML("beforeend", `<section class="panel" id="responses"><h2>Administrator updates</h2>${responseItems.length
       ? responseItems.map(item => `<article class="response-entry"><h3>${esc(item.ticketId || item._id)} · ${esc(item.title)}</h3>${updates(item)}</article>`).join("")
       : "<p>Responses and notes from administrators will appear here.</p>"}</section><section class="panel" id="complaintDetail" hidden></section>`);
+    if (latestNotifications) {
+      renderNotifications(latestNotifications.notifications, latestNotifications.unreadCount);
+    }
     document.querySelector("#markAllNotificationsRead").onclick = async () => {
       try {
         await call("/notifications/read-all", { method: "PATCH" });
@@ -356,9 +361,8 @@
   if (admin) {
     adminPanel().catch(showDashboardError);
   } else {
-    student()
-      .then(() => notifications())
-      .catch(showDashboardError);
+    student().catch(showDashboardError);
+    notifications().catch(error => console.error("Could not load notifications:", error));
     setInterval(() => {
       if (!document.hidden) {
         notifications().catch(error => console.error("Could not refresh notifications:", error));

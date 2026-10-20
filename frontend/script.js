@@ -2906,7 +2906,7 @@ function loadComplaints() {
       );
 
       // The authenticated portal enforces role-specific experiences.
-      setTimeout(() => { window.location.href = "portal.html"; }, 300);
+      window.location.href = "portal.html";
 
 
       /* UPDATE HEADER */
@@ -3095,7 +3095,7 @@ function loadComplaints() {
 
       // Login responses include the role; portal.html selects the correct
       // user or administrator experience after this authenticated redirect.
-      setTimeout(() => { window.location.href = "portal.html"; }, 300);
+      window.location.href = "portal.html";
 
       updateAuthUI();
 

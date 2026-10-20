@@ -54,7 +54,10 @@ const register = async (req, res) => {
             });
         }
 
-        const existingEmail = await User.findOne({ email: normalizedEmail });
+        const [existingEmail, existingStudent] = await Promise.all([
+            User.findOne({ email: normalizedEmail }).select("_id").lean(),
+            User.findOne({ studentId: normalizedStudentId }).select("_id").lean()
+        ]);
 
         if (existingEmail) {
             return res.status(400).json({
@@ -62,8 +65,6 @@ const register = async (req, res) => {
                 message: "Email already registered"
             });
         }
-
-        const existingStudent = await User.findOne({ studentId: normalizedStudentId });
 
         if (existingStudent) {
             return res.status(400).json({
