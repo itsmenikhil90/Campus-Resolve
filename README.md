@@ -1,6 +1,6 @@
-# Campus Resolve
+# AI Campus Resolve
 
-Campus Resolve is a standalone, AI-assisted complaint management platform. Users can submit and track complaints, ask an AI-powered assistant about FAQs and their own complaint updates, while administrators review recommendations, manage workflows, and make final decisions.
+AI Campus Resolve is a standalone, AI-assisted complaint management platform. Users can submit and track complaints, ask an AI-powered assistant about FAQs and their own complaint updates, while administrators review recommendations, manage workflows, and make final decisions.
 
 ## Run locally
 
@@ -20,9 +20,9 @@ To create an administrator, add `ADMIN_EMAIL` and `ADMIN_PASSWORD` to `backend/.
 
 The frontend uses one API base for authentication, the dashboard, and chat. It defaults to the deployed backend URL; if hosting the frontend with a different backend, set `window.CAMPUS_RESOLVE_API_BASE` (the backend origin or its `/api` URL) before `api-config.js` loads, and add the frontend origin to `FRONTEND_URL`. When the frontend and backend are served together, use the same public origin as the configured API base.
 
-After login, users can submit and track their own complaints, see administrator replies and notes, and receive dashboard notifications for complaint decisions and updates. Notifications refresh automatically while the dashboard is open. Administrators receive dashboard, search, approval/rejection, response, and workflow controls.
+After login, users can submit and track their own complaints, see administrator replies and notes, and open their private notification center for complaint decisions and updates. The dashboard header shows the unread notification count; administrators also receive notifications when new complaints await review.
 
-The Campus Resolve Assistant answers the site FAQs and can look up a signed-in user's own complaint statuses and details. When AI is enabled, chat messages, recent conversation turns, and (when complaint lookup is relevant) authorized complaint details are sent to the configured OpenAI service; disclose this to users and configure the provider accordingly. Without AI configuration, supported FAQs and complaint lookups use local responses. Chat is rate-limited and cannot change complaint records.
+The AI Campus Resolve Assistant answers the site FAQs and can look up a signed-in user's own complaint statuses and details. Voice input uses browser speech recognition and supports English and Hindi where the browser provides them; spoken responses use browser speech synthesis. Recognition availability varies by browser and may require an internet connection. Voice features do not store audio. When AI is enabled, chat messages, recent conversation turns, and (when complaint lookup is relevant) authorized complaint details are sent to the configured OpenAI service; disclose this to users and configure the provider accordingly. Without AI configuration, supported FAQs and complaint lookups use local responses. Chat is rate-limited and cannot change complaint records.
 
 Workflow: `Pending Approval → Under Review → Assigned → In Progress → Resolved`; rejection is terminal. Status changes and notifications are stored in MongoDB.
 

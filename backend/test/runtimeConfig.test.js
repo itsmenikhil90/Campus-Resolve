@@ -10,7 +10,7 @@ const productionEnv = {
     SMTP_HOST: "smtp.example.test",
     SMTP_USER: "mailer",
     SMTP_PASS: "test-password",
-    EMAIL_FROM: "Campus Resolve <noreply@example.test>",
+    EMAIL_FROM: "AI Campus Resolve <noreply@example.test>",
     STORAGE_DRIVER: "s3",
     S3_BUCKET: "complaint-attachments",
     AWS_REGION: "us-east-1",

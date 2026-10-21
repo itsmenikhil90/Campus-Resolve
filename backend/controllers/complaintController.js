@@ -14,6 +14,17 @@ const setStatus = (complaint, status, user, note = "") => {
   return true;
 };
 const notify = (c, type, title, message) => Notification.create({ recipient: c.student, complaint: c._id, type, title, message });
+const notifyAdministrators = async (complaint, type, title, message) => {
+  const administrators = await User.find({ role: "admin" }).select("_id").lean();
+  if (!administrators.length) return;
+  await Notification.insertMany(administrators.map(admin => ({
+    recipient: admin._id,
+    complaint: complaint._id,
+    type,
+    title,
+    message
+  })));
+};
 const detailed = query => query.populate("student", "name email studentId department year").populate("assignedTo approvedBy rejectedBy", "name email role").populate("comments.author", "name email role").populate("responses.author", "name email role");
 
 exports.createComplaint = async (req, res) => {
@@ -28,7 +39,10 @@ exports.createComplaint = async (req, res) => {
     const c = new Complaint({ student: req.user._id, title: title.trim(), description: description.trim(), category, priority, department, images: storedAttachments, status: "Pending Approval", approvalStatus: "pending", statusHistory: [{ status: "Pending Approval", changedBy: req.user._id, note: "Complaint submitted" }], aiAnalysis: { category: ai.category || category, priority: ai.priority || priority, summary: ai.summary || "AI analysis unavailable.", department: ai.department || department, sentiment: ai.sentiment || "Neutral", keywords: ai.keywords || [], similarComplaint: !!ai.similarComplaint, confidence: ai.confidence || 0 } });
     await c.save();
     complaintSaved = true;
-    await notify(c, "submitted", "Complaint submitted", `${c.ticketId} is awaiting approval.`);
+    await Promise.all([
+      notify(c, "submitted", "Complaint submitted", `${c.ticketId} is awaiting approval.`),
+      notifyAdministrators(c, "new-complaint", "New complaint submitted", `${c.ticketId} is awaiting approval.`)
+    ]);
     res.status(201).json({ success: true, message: "Complaint submitted and awaiting approval.", data: c, complaint: c });
   } catch (e) {
     console.error("Create complaint:", e);

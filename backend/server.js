@@ -104,7 +104,7 @@ app.use("/api/chatbot", chatbotRoutes);
 app.get("/", (req, res) => {
     res.json({
         success: true,
-        message: "Campus Resolve Backend is running 🚀"
+        message: "AI Campus Resolve backend is running"
     });
 });
 

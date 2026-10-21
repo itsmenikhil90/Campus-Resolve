@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Notifications — AI Campus Resolve</title>
+  <link rel="stylesheet" href="portal.css">
+</head>
+<body>
+  <header>
+    <b>AI Campus Resolve</b>
+    <a class="notification-back" href="portal.html">Back to dashboard</a>
+    <button id="logout" type="button">Log out</button>
+  </header>
+  <main>
+    <section class="panel notification-center" aria-labelledby="notificationTitle">
+      <div class="notification-heading">
+        <div>
+          <h1 id="notificationTitle">Notifications <span id="unread"></span></h1>
+          <p>Your private account updates and complaint activity.</p>
+        </div>
+        <button type="button" id="markAllNotificationsRead">Mark all as read</button>
+      </div>
+      <div id="notificationList" aria-live="polite"><p>Loading notifications…</p></div>
+    </section>
+  </main>
+  <div id="notice" role="status" aria-live="polite" hidden></div>
+  <script src="api-config.js"></script>
+  <script src="notifications.js"></script>
+</body>
+</html>

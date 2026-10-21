@@ -1,4 +1,4 @@
-# Campus Resolve API
+# AI Campus Resolve API
 
 All protected endpoints need `Authorization: Bearer <jwt>`.
 

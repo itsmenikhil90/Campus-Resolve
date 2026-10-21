@@ -132,23 +132,11 @@
     </table>`;
 
   let notificationIds = null;
-  let latestNotifications = null;
 
-  const renderNotifications = (items, unreadCount) => {
+  const updateUnreadCount = unreadCount => {
     document.querySelector("#unread").textContent = unreadCount ? `(${unreadCount})` : "";
-    const sectionUnread = document.querySelector("#notificationUnread");
-    if (sectionUnread) sectionUnread.textContent = unreadCount ? `(${unreadCount} unread)` : "";
-    const list = document.querySelector("#notificationList");
-    if (!list) return;
-    list.innerHTML = items.length
-      ? items.map(item => `
-        <article class="notification-item${item.isRead ? "" : " unread"}">
-          <div><b>${esc(item.title)}</b><small>${new Date(item.createdAt).toLocaleString()}</small></div>
-          <p>${esc(item.message)}</p>
-          ${item.complaint ? `<small>${esc(item.complaint.ticketId || "")} · ${esc(item.complaint.title || "")}</small>` : ""}
-          <button type="button" data-mark-notification="${esc(item._id)}" ${item.isRead ? "disabled" : ""}>${item.isRead ? "Read" : "Mark as read"}</button>
-        </article>`).join("")
-      : "<p>No notifications yet. Complaint decisions and administrator updates will appear here.</p>";
+    const summary = document.querySelector("#dashboardUnread");
+    if (summary) summary.textContent = String(unreadCount);
   };
 
   async function notifications() {
@@ -162,15 +150,9 @@
       }
     }
     notificationIds = currentIds;
-    latestNotifications = data.data;
-    renderNotifications(items, data.data.unreadCount);
+    updateUnreadCount(data.data.unreadCount);
     return items;
   }
-
-  document.querySelector("#notifications").onclick = () => {
-    document.querySelector("#notificationCenter")?.scrollIntoView({ behavior: "smooth" });
-    notifications().catch(error => toast(`Could not refresh notifications: ${error.message}`));
-  };
 
   async function student() {
     const data = await call("/complaints/my");
@@ -186,39 +168,17 @@
     };
     const responseItems = list.filter(item => item.responses?.length || item.adminResponse || item.comments?.length);
     app.innerHTML = `<h1>My dashboard</h1><section class="cards">${statusCards(counts)}</section>
-      <section class="panel" id="notificationCenter" aria-live="polite">
-        <div class="notification-heading"><h2>Notifications <span id="notificationUnread"></span></h2><button type="button" id="markAllNotificationsRead">Mark all as read</button></div>
-        <div id="notificationList"><p>Loading notifications…</p></div>
-      </section>
+      <p class="notification-summary" aria-live="polite">Unread notifications: <b id="dashboardUnread">0</b> · <a href="notifications.html">View all notifications</a></p>
       <section class="panel"><h2>Submit a complaint</h2><form id="new">
         <div class="row"><input name="title" required placeholder="Complaint title"><select name="category"><option>Other</option><option>Infrastructure</option><option>Academics</option><option>Hostel</option><option>IT/Technical</option></select><select name="priority"><option>Medium</option><option>Low</option><option>High</option><option>Critical</option></select></div>
-        <input name="department" value="${esc(user.department)}" placeholder="Department"><p><textarea required name="description" placeholder="Describe the issue"></textarea></p>
+        <input name="department" value="${esc(user.department)}" placeholder="Department"><p><textarea required name="description" maxlength="5000" data-voice-textarea placeholder="Describe the issue"></textarea></p>
+        <div class="voice-controls complaint-voice" data-voice-input data-target="[data-voice-textarea]"><label class="sr-only" for="complaintVoiceLanguage">Speech recognition language</label><select id="complaintVoiceLanguage" data-voice-language aria-label="Speech recognition language"><option value="en-US">English</option><option value="hi-IN">Hindi</option></select><button type="button" data-voice-start aria-label="Start voice input" title="Start voice input">🎙</button><button type="button" data-voice-stop aria-label="Stop voice input" title="Stop voice input" hidden>Stop</button><span data-voice-status role="status" aria-live="polite">Ready</span></div>
         <label>Attachments (up to 3 JPEG, PNG, WebP, or PDF files, 5 MB each)<input name="attachments" type="file" accept=".jpg,.jpeg,.png,.webp,.pdf" multiple></label>
         <button>Submit complaint</button></form></section><h2>Your complaints</h2>${table(list, false)}`;
+    window.initializeVoiceInputs?.(app);
     app.insertAdjacentHTML("beforeend", `<section class="panel" id="responses"><h2>Administrator updates</h2>${responseItems.length
       ? responseItems.map(item => `<article class="response-entry"><h3>${esc(item.ticketId || item._id)} · ${esc(item.title)}</h3>${updates(item)}</article>`).join("")
       : "<p>Responses and notes from administrators will appear here.</p>"}</section><section class="panel" id="complaintDetail" hidden></section>`);
-    if (latestNotifications) {
-      renderNotifications(latestNotifications.notifications, latestNotifications.unreadCount);
-    }
-    document.querySelector("#markAllNotificationsRead").onclick = async () => {
-      try {
-        await call("/notifications/read-all", { method: "PATCH" });
-        await notifications();
-      } catch (error) {
-        toast(`Could not mark notifications as read: ${error.message}`);
-      }
-    };
-    document.querySelector("#notificationList").addEventListener("click", async event => {
-      const button = event.target.closest("[data-mark-notification]");
-      if (!button || button.disabled) return;
-      try {
-        await call(`/notifications/${encodeURIComponent(button.dataset.markNotification)}/read`, { method: "PATCH" });
-        await notifications();
-      } catch (error) {
-        toast(`Could not update notification: ${error.message}`);
-      }
-    });
     document.querySelector("#new").onsubmit = async event => {
       event.preventDefault();
       const form = new FormData(event.target);
@@ -362,11 +322,11 @@
     adminPanel().catch(showDashboardError);
   } else {
     student().catch(showDashboardError);
-    notifications().catch(error => console.error("Could not load notifications:", error));
-    setInterval(() => {
-      if (!document.hidden) {
-        notifications().catch(error => console.error("Could not refresh notifications:", error));
-      }
-    }, 10000);
   }
+  notifications().catch(error => console.error("Could not load notifications:", error));
+  setInterval(() => {
+    if (!document.hidden) {
+      notifications().catch(error => console.error("Could not refresh notifications:", error));
+    }
+  }, 30000);
 })();

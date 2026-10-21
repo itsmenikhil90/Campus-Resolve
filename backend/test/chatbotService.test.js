@@ -109,7 +109,7 @@ test("follow-up questions reuse a ticket ID from recent user conversation", asyn
 });
 
 test("local chatbot answers supported FAQs and complaint details without AI credentials", () => {
-    assert.match(answerWithoutAI({ message: "How do I file a complaint?" }), /Sign in to Campus Resolve/);
+    assert.match(answerWithoutAI({ message: "How do I file a complaint?" }), /Sign in to AI Campus Resolve/);
     assert.match(answerWithoutAI({ message: "Who can see my complaints?" }), /authorized administrators/);
     assert.match(answerWithoutAI({
         message: "What is the status of my latest complaint?",
