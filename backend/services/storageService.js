@@ -1,7 +1,6 @@
 const crypto = require("node:crypto");
 const fs = require("node:fs/promises");
 const path = require("node:path");
-const { S3Client, PutObjectCommand, DeleteObjectsCommand, GetObjectCommand, HeadBucketCommand } = require("@aws-sdk/client-s3");
 
 const allowedTypes = new Map([
     ["image/jpeg", ".jpg"],
@@ -10,133 +9,191 @@ const allowedTypes = new Map([
     ["application/pdf", ".pdf"]
 ]);
 
-const uploadDirectory = () => path.resolve(process.env.UPLOAD_DIR || path.join(__dirname, "..", "uploads"));
-const driver = () => process.env.STORAGE_DRIVER || "local";
+const uploadDirectory = () =>
+    path.resolve(
+        process.env.UPLOAD_DIR ||
+        path.join(__dirname, "..", "uploads")
+    );
+
+/* =================================
+   FILE SIGNATURE VALIDATION
+================================= */
 
 const hasValidSignature = file => {
+    if (!file?.buffer || !Buffer.isBuffer(file.buffer)) {
+        return false;
+    }
+
     const buffer = file.buffer;
+
     switch (file.mimetype) {
         case "image/jpeg":
-            return buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
+            return (
+                buffer.length >= 3 &&
+                buffer[0] === 0xff &&
+                buffer[1] === 0xd8 &&
+                buffer[2] === 0xff
+            );
+
         case "image/png":
-            return buffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+            return (
+                buffer.length >= 8 &&
+                buffer
+                    .subarray(0, 8)
+                    .equals(
+                        Buffer.from([
+                            0x89, 0x50, 0x4e, 0x47,
+                            0x0d, 0x0a, 0x1a, 0x0a
+                        ])
+                    )
+            );
+
         case "image/webp":
-            return buffer.length >= 12 && buffer.toString("ascii", 0, 4) === "RIFF" && buffer.toString("ascii", 8, 12) === "WEBP";
+            return (
+                buffer.length >= 12 &&
+                buffer.toString("ascii", 0, 4) === "RIFF" &&
+                buffer.toString("ascii", 8, 12) === "WEBP"
+            );
+
         case "application/pdf":
             return buffer.toString("ascii", 0, 5) === "%PDF-";
+
         default:
             return false;
     }
 };
 
-let client;
-const getS3Client = () => {
-    if (!client) {
-        const options = {
-            region: process.env.AWS_REGION,
-            ...(process.env.S3_ENDPOINT ? {
-                endpoint: process.env.S3_ENDPOINT,
-                forcePathStyle: process.env.S3_FORCE_PATH_STYLE === "true"
-            } : {}),
-            ...(process.env.S3_ACCESS_KEY_ID && process.env.S3_SECRET_ACCESS_KEY ? {
-                credentials: {
-                    accessKeyId: process.env.S3_ACCESS_KEY_ID,
-                    secretAccessKey: process.env.S3_SECRET_ACCESS_KEY
-                }
-            } : {})
-        };
-        client = new S3Client(options);
-    }
-    return client;
-};
+/* =================================
+   SAVE ATTACHMENTS
+================================= */
 
 const saveUploads = async files => {
-    if (!files?.length) return [];
+    if (!files?.length) {
+        return [];
+    }
 
     const stored = [];
-    try {
-        if (driver() === "s3") {
-            const s3 = getS3Client();
-            for (const file of files) {
-                const extension = allowedTypes.get(file.mimetype);
-                if (!extension || !hasValidSignature(file)) throw new Error("Attachment content does not match an allowed file type.");
-                const key = `complaints/${crypto.randomUUID()}${extension}`;
-                await s3.send(new PutObjectCommand({
-                    Bucket: process.env.S3_BUCKET,
-                    Key: key,
-                    Body: file.buffer,
-                    ContentLength: file.size,
-                    ContentType: file.mimetype
-                }));
-                stored.push(`s3:${key}`);
-            }
-            return stored;
-        }
+    const directory = uploadDirectory();
 
-        const directory = uploadDirectory();
+    try {
         await fs.mkdir(directory, { recursive: true });
+
         for (const file of files) {
             const extension = allowedTypes.get(file.mimetype);
-            if (!extension || !hasValidSignature(file)) throw new Error("Attachment content does not match an allowed file type.");
+
+            if (!extension || !hasValidSignature(file)) {
+                throw new Error(
+                    "Attachment content does not match an allowed file type."
+                );
+            }
+
+            if (
+                typeof file.size !== "number" ||
+                file.size > 5 * 1024 * 1024
+            ) {
+                throw new Error(
+                    "Each attachment must be 5 MB or smaller."
+                );
+            }
+
             const filename = `${crypto.randomUUID()}${extension}`;
-            await fs.writeFile(path.join(directory, filename), file.buffer, { flag: "wx" });
+            const filePath = path.join(directory, filename);
+
+            await fs.writeFile(filePath, file.buffer, {
+                flag: "wx"
+            });
+
             stored.push(`local:${filename}`);
         }
+
         return stored;
+
     } catch (error) {
-        await deleteUploads(stored);
+        await deleteUploads(stored).catch(cleanupError => {
+            console.error(
+                "Attachment cleanup failed:",
+                cleanupError.message
+            );
+        });
+
         throw error;
     }
 };
 
-const deleteUploads = async references => {
-    if (!references?.length) return;
+/* =================================
+   DELETE ATTACHMENTS
+================================= */
 
-    const keys = references.filter(reference => reference.startsWith("s3:")).map(reference => reference.slice(3));
-    if (keys.length) {
-        await getS3Client().send(new DeleteObjectsCommand({
-            Bucket: process.env.S3_BUCKET,
-            Delete: { Objects: keys.map(Key => ({ Key })), Quiet: true }
-        }));
+const deleteUploads = async references => {
+    if (!references?.length) {
+        return;
     }
 
-    const localFiles = references.filter(reference => reference.startsWith("local:") || reference.startsWith("/uploads/"));
-    for (const reference of localFiles) {
-        const filename = path.basename(reference.startsWith("local:") ? reference.slice(6) : reference);
-        await fs.rm(path.join(uploadDirectory(), filename), { force: true });
+    for (const reference of references) {
+        if (
+            typeof reference !== "string" ||
+            !reference.startsWith("local:")
+        ) {
+            continue;
+        }
+
+        const filename = path.basename(reference.slice(6));
+
+        await fs.rm(
+            path.join(uploadDirectory(), filename),
+            { force: true }
+        );
     }
 };
+
+/* =================================
+   GET ATTACHMENT
+================================= */
 
 const getAttachment = async reference => {
-    if (reference.startsWith("s3:")) {
-        const key = reference.slice(3);
-        const result = await getS3Client().send(new GetObjectCommand({
-            Bucket: process.env.S3_BUCKET,
-            Key: key
-        }));
-        return {
-            type: "stream",
-            body: result.Body,
-            contentType: result.ContentType || "application/octet-stream",
-            contentLength: result.ContentLength
-        };
+    if (
+        typeof reference !== "string" ||
+        !reference.startsWith("local:")
+    ) {
+        throw new Error("Unsupported stored attachment reference.");
     }
 
-    if (reference.startsWith("local:") || reference.startsWith("/uploads/")) {
-        const filename = path.basename(reference.startsWith("local:") ? reference.slice(6) : reference);
-        const filePath = path.join(uploadDirectory(), filename);
-        return { type: "file", filePath };
-    }
+    const filename = path.basename(reference.slice(6));
+    const filePath = path.join(uploadDirectory(), filename);
 
-    throw new Error("Unsupported stored attachment reference.");
+    return {
+        type: "file",
+        filePath
+    };
 };
+
+/* =================================
+   STORAGE HEALTH CHECK
+================================= */
 
 const checkStorage = async () => {
-    if (driver() !== "s3") return false;
-    await getS3Client().send(new HeadBucketCommand({ Bucket: process.env.S3_BUCKET }), {
-        abortSignal: AbortSignal.timeout(5000)
-    });
-    return true;
+    try {
+        await fs.mkdir(uploadDirectory(), {
+            recursive: true
+        });
+
+        await fs.access(uploadDirectory());
+
+        return true;
+    } catch (error) {
+        console.error(
+            "Local storage check failed:",
+            error.message
+        );
+
+        return false;
+    }
 };
 
-module.exports = { allowedTypes, saveUploads, deleteUploads, getAttachment, checkStorage };
+module.exports = {
+    allowedTypes,
+    saveUploads,
+    deleteUploads,
+    getAttachment,
+    checkStorage
+};
