@@ -42,8 +42,28 @@ const userSchema = new mongoose.Schema(
 
         role: {
             type: String,
-            enum: ["student", "admin", "staff"],
-            default: "student"
+            default: "student",
+            validate: {
+                validator(value) {
+                    const allowed = [
+                        "student",
+                        "admin",
+                        "staff",
+                        "class_representative",
+                        "class_coordinator",
+                        "hod",
+                        "dean",
+                        "proctor",
+                        "director",
+                        "assistant_director",
+                        "associate_director",
+                        "chairman"
+                    ];
+                    const normalized = String(value).trim().toLowerCase().replace(/[\s-]+/g, "_");
+                    return allowed.includes(normalized);
+                },
+                message: "Unsupported user role"
+            }
         },
 
         // =============================

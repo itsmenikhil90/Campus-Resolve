@@ -77,9 +77,75 @@ const complaintSchema = new mongoose.Schema(
                 "Assigned",
                 "In Progress",
                 "Resolved",
-                "Rejected"
+                "Rejected",
+                "PENDING_REVIEW",
+                "AWAITING_STUDENT",
+                "UNRESOLVED_AT_FINAL_STAGE",
+                "COMPLETED"
             ],
             default: "Pending Approval"
+        },
+
+        workflowStage: {
+            type: String,
+            enum: [
+                "CR",
+                "CLASS_COORDINATOR",
+                "HOD",
+                "DEAN",
+                "PROCTOR",
+                "DIRECTOR",
+                "ASSISTANT_DIRECTOR",
+                "ASSOCIATE_DIRECTOR",
+                "CHAIRMAN",
+                "COMPLETED"
+            ],
+            default: "CR"
+        },
+
+        currentStage: {
+            type: String,
+            default: "CR"
+        },
+
+        currentAuthorityRole: {
+            type: String,
+            default: "class_representative"
+        },
+
+        assignmentQueue: {
+            type: String,
+            default: "none"
+        },
+
+        lastAction: {
+            type: String,
+            default: "submitted"
+        },
+
+        resolutionDescription: {
+            type: String,
+            default: ""
+        },
+
+        resolvedBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+            default: null
+        },
+
+        resolutionEvidence: [{
+            type: String
+        }],
+
+        forwardingRemarks: {
+            type: String,
+            default: ""
+        },
+
+        requestReason: {
+            type: String,
+            default: ""
         },
 
         // ========================================

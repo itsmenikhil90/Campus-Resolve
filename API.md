@@ -25,3 +25,17 @@ All protected endpoints need `Authorization: Bearer <jwt>`.
 | POST | `/api/chatbot` | Ask the FAQ assistant; optionally send a bearer token for authorized complaint lookup. Body: `{ "message": "...", "history": [] }` |
 
 Chat requests are limited to 20 per IP per 15 minutes. When AI is enabled, messages and up to eight recent turns are sent to the configured OpenAI model. Complaint details are included only when relevant; regular users are restricted to their own records, while administrators can query complaint records. When AI is disabled, supported FAQs and complaint lookups use local responses.
+
+## Hierarchical escalation workflow
+
+Complaints now follow the configured escalation chain: Student → CR → Class Coordinator → HOD → Dean → Proctor → Director → Assistant Director → Associate Director → Chairman. New complaints are created with status `PENDING_REVIEW` and a `CR` workflow stage; the system automatically assigns the complaint to a class representative when one exists. If no representative is available, the complaint is kept in the administrative queue for manual assignment.
+
+The complaint review API also supports explicit action endpoints:
+
+- `POST /api/complaints/:id/resolve` with `resolutionDescription`
+- `POST /api/complaints/:id/forward` with `remarks`
+- `POST /api/complaints/:id/request-more-info` with `question` or `message`
+- `GET /api/complaints/authority/queue` for complaint lists assigned to the current authority
+- `GET /api/complaints/workflow-config` to inspect the configured hierarchy
+
+Resolved complaints are terminal and cannot be forwarded. A final-stage complaint that reaches the chairman without resolution is stored with `UNRESOLVED_AT_FINAL_STAGE`.

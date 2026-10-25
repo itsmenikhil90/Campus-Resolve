@@ -65,13 +65,14 @@ const optionalProtect = async (req, res, next) => {
 // =============================
 // ROLE AUTHORIZATION
 // =============================
+const normalizeRole = value => String(value || "").trim().toLowerCase().replace(/[\s-]+/g, "_");
+
 const authorize = (...roles) => {
     return (req, res, next) => {
+        const allowedRoles = roles.map(normalizeRole);
+        const userRole = normalizeRole(req.user.role);
 
-        console.log("User Role:", req.user.role);
-        console.log("Allowed Roles:", roles);
-
-        if (!roles.includes(req.user.role)) {
+        if (!allowedRoles.includes(userRole)) {
             return res.status(403).json({
                 success: false,
                 message: "Access denied."

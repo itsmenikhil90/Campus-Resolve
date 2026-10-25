@@ -7,7 +7,9 @@ const {
     getComplaintAttachment,
 
     getAllComplaints,
+    getAuthorityQueue,
     getComplaintStats,
+    getWorkflowConfig,
 
     approveComplaint,
     rejectComplaint,
@@ -15,7 +17,10 @@ const {
     updateComplaintStatus,
     addAdminResponse,
     addComment,
-    assignComplaint
+    assignComplaint,
+    resolveComplaint,
+    forwardComplaint,
+    requestMoreInfo
 
 } = require("../controllers/complaintController");
 
@@ -70,6 +75,19 @@ router.get(
     protect,
     authorize("admin"),
     getAllComplaints
+);
+
+router.get(
+    "/authority/queue",
+    protect,
+    authorize("class_representative", "class_coordinator", "hod", "dean", "proctor", "director", "assistant_director", "associate_director", "chairman"),
+    getAuthorityQueue
+);
+
+router.get(
+    "/workflow-config",
+    protect,
+    getWorkflowConfig
 );
 
 
@@ -149,6 +167,71 @@ router.patch(
     protect,
     authorize("admin"),
     assignComplaint
+);
+
+router.post(
+    "/:id/resolve",
+    protect,
+    resolveComplaint
+);
+
+router.patch(
+    "/:id/resolve",
+    protect,
+    resolveComplaint
+);
+
+router.post(
+    "/:id/forward",
+    protect,
+    forwardComplaint
+);
+
+router.patch(
+    "/:id/forward",
+    protect,
+    forwardComplaint
+);
+
+router.post(
+    "/:id/request-more-info",
+    protect,
+    requestMoreInfo
+);
+
+router.patch(
+    "/:id/request-more-info",
+    protect,
+    requestMoreInfo
+);
+
+router.patch(
+    "/:id/status",
+    protect,
+    updateComplaintStatus
+);
+
+router.patch(
+    "/:id/assign",
+    protect,
+    authorize("admin"),
+    assignComplaint
+);
+
+router.get(
+    "/:id/attachments/:index",
+    protect,
+    getComplaintAttachment
+);
+
+// ======================================================
+// SINGLE COMPLAINT
+// ======================================================
+
+router.get(
+    "/:id",
+    protect,
+    getComplaintById
 );
 
 router.get(
